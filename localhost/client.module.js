@@ -1,32 +1,41 @@
-import { O_gpu_gateway } from "./classes.module.js";
+import { O_gpu_gateway, O_shader_error, O_shader_info } from "./classes.module.js";
 
 let o_state = {
     a_o_gpu_data : []
 };
-let f_a_o_error_details = function(
+let f_a_o_shader_error = function(
     s_code_shader,
     o_shader,
     o_ctx, 
+    o_shader_info
 ){
     let a_o = [];
     if (!o_ctx.getShaderParameter(o_shader, o_ctx.COMPILE_STATUS)) {
         let s_shader_info_log = o_ctx.getShaderInfoLog(o_shader);
-        
+        let a_s_ignore = [
+            '', 
+            null, 
+            undefined, 
+            false, 
+            '\u0000'
+        ]
+        if(a_s_ignore.includes(s_shader_info_log)){return []}
         a_o = s_shader_info_log
             ?.split('\n')
-            ?.filter(s=>s?.trim()!='')
+            ?.filter(s=>!a_s_ignore.includes(s))
             ?.map(s=>{
                 let a_s_part = s.split(':').map(s=>s.trim());
                 let s_error_prefix = a_s_part[0];
                 let n_idx = parseInt(a_s_part[1]);
                 let n_line = parseInt(a_s_part[2]);
                 let s_code_content_with_error__quoted = a_s_part[3];
+                console.log(a_s_part)
                 let s_code_content_with_error = s_code_content_with_error__quoted.substring(1, s_code_content_with_error__quoted.length-1)
                 let s_error_type = a_s_part[4];
                 let s_line_code_with_error = s_code_shader.split('\n')[n_line-1];
                 let n_idx_s_code = s_line_code_with_error.indexOf(s_code_content_with_error);
                 let n_idx_s_code_second = s_line_code_with_error.indexOf(s_code_content_with_error, n_idx_s_code+1);
-                let s_line_pointing_out_error = `${' '.repeat(n_idx_s_code)}${'^'.repeat(s_code_content_with_error.length)}${s_error_type}`
+                let s_line_pointing_out_error = `${' '.repeat(n_idx_s_code)}${'^'.repeat(s_code_content_with_error.length)} ${s_error_type}`
                 if(n_idx_s_code_second != -1){
                     let n_idx_first_non_whitespace = s_line_code_with_error.search(/\S/);
                     let n_remaining = s_line_code_with_error.length - n_idx_first_non_whitespace;
@@ -34,26 +43,67 @@ let f_a_o_error_details = function(
                     // for example the 'd' is found firstly in voi'd', but the error is actually in void main() {'d'...
                     // void main() {d
                     //     ^undeclared identifier
-                    s_line_pointing_out_error = `${' '.repeat(n_idx_first_non_whitespace)}${'-'.repeat(n_remaining)}${s_error_type}`
+                    s_line_pointing_out_error = `${' '.repeat(n_idx_first_non_whitespace)}${'-'.repeat(n_remaining)} ${s_error_type}`
                 }
                 let n_pad = (n_line.toString().length+1);
-                let a_s_line__rustlike_error = [
-                    `${s_error_prefix} ${s_code_content_with_error__quoted} ${s_error_type}`,
+                let s_rustlike_error = [
+                    `${s_error_prefix} ${s_code_content_with_error__quoted}`,
                     `${' '.repeat(n_pad)}|`,
                     `${n_line.toString().padEnd(n_pad, ' ')}|${s_line_code_with_error}`,
                     `${' '.repeat(n_pad)}|${s_line_pointing_out_error}`,
-                    
-                ];
-                console.log(a_s_line__rustlike_error.join('\n'))
+                ].join('\n')
+                return new O_shader_error(
+                    o_shader_info, 
+                    s_error_prefix,
+                    n_idx,
+                    n_line,
+                    s_code_content_with_error__quoted,
+                    s_error_type,
+                    s_line_code_with_error,
+                    s_rustlike_error
+                )
             });
     }
 
     return a_o;
 }
 
+let f_o_shader_info = function(
+    s_type, 
+    s_code_shader, 
+    o_ctx
+){
+    let o_shader_info = new O_shader_info(
+        s_type, 
+        s_code_shader, 
+        null, 
+        []
+    )
+    let a_s_type__allowed = ['vertex', 'fragment'];
+    if(!a_s_type__allowed.includes(s_type)){
+        throw Error(`s_type: ${s_type} is not allowed, allowed are ${JSON.stringify(a_s_type__allowed)}`);
+    }
+    o_shader_info.o_shader = o_ctx.createShader(o_ctx[`${s_type.toUpperCase()}_SHADER`])
+    o_ctx.shaderSource(o_shader_info.o_shader, s_code_shader);
+    o_shader_info.n_ts_ms_start_compile  = new Date().getTime()
+    let n_ms = window.performance.now()
+    o_ctx.compileShader(o_shader_info.o_shader);
+    o_shader_info.n_ms_duration_compile = window.performance.now()-n_ms;
+    o_shader_info.a_o_shader_error = f_a_o_shader_error(
+        s_code_shader,
+        o_shader_info.o_shader,
+        o_ctx, 
+        o_shader_info
+    );
+    if(o_shader_info.a_o_shader_error.length > 0){
+        o_ctx.deleteShader(o_shader_info.o_shader);
+    }
+    return o_shader_info;
+}
+
 let f_o_gpu_gateway = function(
     o_canvas, 
-    s_code_shader__vertex = '', 
+    s_code_shader__vertex = '',
     s_code_shader__fragment = '', 
 ) {
     let o_ctx = o_canvas.getContext(
@@ -61,41 +111,35 @@ let f_o_gpu_gateway = function(
         {preserveDrawingBuffer: true} // o_canvas.getContext(...).readPixels(...) will return 0 without this
     );
     if (!o_ctx) {
-        console.error("WebGL2 is not supported or disabled in this browser.");
-        return;
+        throw Error("WebGL2 is not supported or disabled in this browser.");
     }
 
-    var o_shader__vertex = o_ctx.createShader(o_ctx.VERTEX_SHADER);
     // console.error('ERROR compiling fragment shader!', s_shader_info_log);
-
-    o_ctx.shaderSource(o_shader__vertex, s_code_shader__vertex);
-    o_ctx.compileShader(o_shader__vertex);
-    if (!o_ctx.getShaderParameter(o_shader__vertex, o_ctx.COMPILE_STATUS)) {
-        let s_shader_info_log = o_ctx.getShaderInfoLog(o_shader__vertex);
-        let a_o_line_col_info__from_s_shader_info_log = f_a_o_line_col_info__from_s_shader_info_log(
-            s_shader_info_log
-        );
-        console.error('ERROR compiling vertex shader!', s_shader_info_log);
-        o_ctx.deleteShader(o_shader__vertex);
-        return;
+    let o_map = {
+        'fragment': s_code_shader__fragment, 
+        'vertex': s_code_shader__vertex
     }
-
-
-    // Fragment Shader
-    var o_shader__fragment = o_ctx.createShader(o_ctx.FRAGMENT_SHADER);
-    o_ctx.shaderSource(o_shader__fragment, s_code_shader__fragment);
-    o_ctx.compileShader(o_shader__fragment);
-    let a_o_error_details__fragment = f_a_o_error_details(
-        s_code_shader__fragment,
-        o_shader__fragment,
-        o_ctx, 
-    );
-
+    let a_o_shader_info = Object.keys(o_map).map(
+        s=>{
+            return f_o_shader_info(
+                s, 
+                o_map[s], 
+                o_ctx
+            )
+        }
+    ).flat();
+    for(let o_shader_info of a_o_shader_info){
+        if(o_shader_info.a_o_shader_error.length > 0){
+            console.error(`shader with type '${o_shader_info.s_type}' could not compile, error(s):`)
+            throw Error('\n'+o_shader_info.a_o_shader_error.map(o=>o.s_rustlike_error).join('\n\n')+'\n\n')
+        }
+    }
 
     // Create and use the program
     var o_shader__program = o_ctx.createProgram();
-    o_ctx.attachShader(o_shader__program, o_shader__vertex);
-    o_ctx.attachShader(o_shader__program, o_shader__fragment);
+    for(let o_shader_info of a_o_shader_info){
+        o_ctx.attachShader(o_shader__program, o_shader_info.o_shader);
+    }
     o_ctx.linkProgram(o_shader__program);
     if (!o_ctx.getProgramParameter(o_shader__program, o_ctx.LINK_STATUS)) {
         console.error('ERROR linking o_shader__program!', o_ctx.getProgramInfoLog(o_shader__program));
@@ -108,8 +152,7 @@ let f_o_gpu_gateway = function(
     return new O_gpu_gateway(
         o_canvas, 
         o_ctx, 
-        o_shader__vertex, 
-        o_shader__fragment, 
+        a_o_shader_info,
         o_shader__program
     )
 }
@@ -263,8 +306,36 @@ let f_update_data_o_gpu_gateway = function(){
 
         }
 }
+
+let f_o_gpu_gateway__from_simple_fragment_shader = function(
+    s_code_shader__fragment, 
+    n_scl_x = 500, 
+    n_scl_y = 500
+){
+    let o_canvas2 = document.createElement('canvas');
+    o_canvas2.width = n_scl_x
+    o_canvas2.height = n_scl_y
+    let o_gpu_gateway2 = f_o_gpu_gateway(
+        o_canvas2, 
+        `#version 300 es
+        in vec4 a_o_vec_position_vertex;
+        out vec2 o_trn_nor_pixel;
+        void main() {
+            gl_Position = a_o_vec_position_vertex;
+            o_trn_nor_pixel = (a_o_vec_position_vertex.xy + 1.0) / 2.0; // Convert from clip space to texture coordinates
+        }`,
+        s_code_shader__fragment
+    )
+    f_render_o_gpu_gateway(
+        o_gpu_gateway2
+    );
+    return o_gpu_gateway2;
+}
 export {
     f_o_gpu_gateway,
     f_render_o_gpu_gateway, 
-    o_state
+    o_state,
+
+    // 'presets', aka i am lazy as fuck functions
+    f_o_gpu_gateway__from_simple_fragment_shader
 }

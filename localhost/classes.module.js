@@ -14,15 +14,35 @@ class O_gpu_array_data{
 class O_gpu_texture{
     constructor(
         a_n__typed,
-        o_scl,
-        s_type_inside_shader, 
+        n_scl_x,
+        n_scl_y,
+        n_datatype__webgl_srcType = 0,
+        n_channel_layout_ingpu__webgl_internalFormat = 0, 
+        n_channel_layout_input__webgl_srcFormat = 0, 
+        n_webgl_level = 0, 
+        n_webgl_border = 0, 
+
+        // const level = 0;
+        // const internalFormat = gl.RGBA;
+        // const width = 1;
+        // const height = 1;
+        // const border = 0;
+        // const srcFormat = gl.RGBA;
+        // const srcType = gl.UNSIGNED_BYTE;
+        // const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
 
     ){
         this.a_n__typed = a_n__typed
-        this.o_scl = o_scl, 
-        this.s_type_inside_shader = s_type_inside_shader
+        this.n_scl_x = n_scl_x, 
+        this.n_scl_y = n_scl_y, 
         this.v_o_instance_of_supported_pixels_data = null; //ImageData , HTMLImageElement , HTMLCanvasElement , HTMLVideoElement , ImageBitmap
-        this.o_texture = null
+        this.o_texture = null, 
+        this.n_datatype__webgl_srcType = n_datatype__webgl_srcType
+        this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat
+        this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat
+        this.n_webgl_level = n_webgl_level
+        this.n_webgl_border = n_webgl_border
+        this.s_name_in_shader = null;
     }
 }
 
@@ -37,7 +57,7 @@ class O_gpu_gateway{
         this.o_ctx = o_ctx
         this.a_o_shader_info = a_o_shader_info
         this.o_shader__program = o_shader__program
-        this.a_o_gpu_array_data = []
+        this.a_o_gpu_texture = []
     }
 }
 

@@ -3,9 +3,6 @@ import {
     f_v_s_type_from_array
 } from "https://deno.land/x/handyhelpers@3.3/mod.js"
 
-import {
-    f_o_image_data_from_s_url
-}from 'https://deno.land/x/handyhelpers@3.4/mod.js'
 
 import { O_gpu_gateway, O_gpu_texture, O_shader_error, O_shader_info } from "./classes.module.js";
 
@@ -42,10 +39,11 @@ let f_a_o_shader_error = function(
                 let s_code_content_with_error = s_code_content_with_error__quoted.substring(1, s_code_content_with_error__quoted.length-1)
                 let s_error_type = a_s_part[4];
                 let s_line_code_with_error = s_code_shader.split('\n')[n_line-1];
+                // console.log(s)
                 let n_idx_s_code = s_line_code_with_error.indexOf(s_code_content_with_error);
                 let n_idx_s_code_second = s_line_code_with_error.indexOf(s_code_content_with_error, n_idx_s_code+1);
-                let s_line_pointing_out_error = `${' '.repeat(n_idx_s_code)}${'^'.repeat(s_code_content_with_error.length)} ${s_error_type}`
-                if(n_idx_s_code_second != -1){
+                let s_line_pointing_out_error = s
+                if(n_idx_s_code_second != -1 || n_idx_s_code == -1){
                     let n_idx_first_non_whitespace = s_line_code_with_error.search(/\S/);
                     let n_remaining = s_line_code_with_error.length - n_idx_first_non_whitespace;
                     // we cannot be sure to find the exact match of the error 
@@ -53,6 +51,8 @@ let f_a_o_shader_error = function(
                     // void main() {d
                     //     ^undeclared identifier
                     s_line_pointing_out_error = `${' '.repeat(n_idx_first_non_whitespace)}${'-'.repeat(n_remaining)} ${s_error_type}`
+                }else{
+                    s_line_pointing_out_error = `${' '.repeat(n_idx_s_code)}${'^'.repeat(s_code_content_with_error.length)} ${s_error_type}`
                 }
                 let n_pad = (n_line.toString().length+1);
                 let s_rustlike_error = [
@@ -128,6 +128,7 @@ let f_o_gpu_gateway = function(
         'fragment': s_code_shader__fragment, 
         'vertex': s_code_shader__vertex
     }
+
     let a_o_shader_info = Object.keys(o_map).map(
         s=>{
             return f_o_shader_info(
@@ -137,6 +138,7 @@ let f_o_gpu_gateway = function(
             )
         }
     ).flat();
+
     for(let o_shader_info of a_o_shader_info){
         if(o_shader_info.a_o_shader_error.length > 0){
             console.error(`shader with type '${o_shader_info.s_type}' could not compile, error(s):`)
@@ -170,6 +172,7 @@ let f_o_gpu_gateway = function(
 }
 
 let f_render_o_gpu_gateway = function(o_gpu_gateway){
+        o_gpu_gateway.o_ctx = o_gpu_gateway.o_canvas.getContext('webgl2')
         var o_buffer_position = o_gpu_gateway.o_ctx.createBuffer();
         o_gpu_gateway.o_ctx.bindBuffer(o_gpu_gateway.o_ctx.ARRAY_BUFFER, o_buffer_position);
 
@@ -208,20 +211,51 @@ let f_update_data_in_o_gpu_gateway = function(
     // const maxFragmentArrays = Math.floor(maxFragmentUniformVectors / 25);
     // console.log('Max Vertex Arrays:', maxVertexArrays);
     // console.log('Max Fragment Arrays:', maxFragmentArrays);
+    o_gpu_gateway.o_canvas.getContext('webgl2');// WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost , can occur when the programmer uses different canvases or video or image elemnets
     let o_ctx = o_gpu_gateway.o_ctx;
-
+    // debugger
     for(let s_prop in o_data){
         let v = o_data[s_prop];
         if(v instanceof O_gpu_texture){
-            // Create a texture
-            debugger
-            if(!v.o_texture){
-                v.o_texture = o_ctx.createTexture();
-            }
+            v.s_name_in_shader = s_prop
+            let n_idx_o_gpu_texture = -1;
+            let o_gpu_texture = o_gpu_gateway.a_o_gpu_texture.find((o, n_idx)=>{
+                let b = o.s_name_in_shader == v.s_name_in_shader
+                if(b){
+                    n_idx_o_gpu_texture = n_idx
+                }
+                return b
+            });
 
-            o_ctx.bindTexture(o_ctx.TEXTURE_2D, v.o_texture);
+            // the order of the called ctx functions is important!!!!
+            if(!o_gpu_texture){
+                const maxTextureImageUnits = o_ctx.getParameter(o_ctx.MAX_TEXTURE_IMAGE_UNITS);
+                console.log('Maximum texture image units:', maxTextureImageUnits);
+                if(o_gpu_gateway.a_o_gpu_texture.length > o_ctx.MAX_TEXTURE_IMAGE_UNITS){
+                    throw Error(`your gpu cannot hold more textures the limit of o_ctx.MAX_TEXTURE_IMAGE_UNITS: ${o_ctx.MAX_TEXTURE_IMAGE_UNITS} is reached`)
+                }
+                o_gpu_gateway.a_o_gpu_texture.push(v);
+                n_idx_o_gpu_texture = o_gpu_gateway.a_o_gpu_texture.length-1;
+            }
+            o_gpu_gateway.a_o_gpu_texture[n_idx_o_gpu_texture] = v;
+            o_gpu_texture = v
+
+            o_gpu_texture.o_texture = o_ctx.createTexture();
+
+            console.log({n_idx_o_gpu_texture, s_prop, o_gpu_texture})
+
+            o_ctx.activeTexture(o_ctx.TEXTURE0 + n_idx_o_gpu_texture);
+            o_ctx.bindTexture(o_ctx.TEXTURE_2D, o_gpu_texture.o_texture);
+            var o_uniform_location = o_ctx.getUniformLocation(o_gpu_gateway.o_shader__program, s_prop);
+            o_ctx.uniform1i(o_uniform_location, n_idx_o_gpu_texture); // Tell the shader we bound the texture to TEXTURE0
+            //textures scale sizes must be power of two
+            // otherwise use this 
+            o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_S, o_ctx.CLAMP_TO_EDGE);
+            o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_T, o_ctx.CLAMP_TO_EDGE);
+            o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_MIN_FILTER, o_ctx.LINEAR);
+
             if(
-                v.v_o_instance_of_supported_pixels_data
+                o_gpu_texture.v_o_instance_of_supported_pixels_data
             ){
                 o_ctx.texImage2D(
                     o_ctx.TEXTURE_2D, //target,
@@ -229,23 +263,28 @@ let f_update_data_in_o_gpu_gateway = function(
                     o_ctx.RGBA, //internalformat,
                     o_ctx.RGBA,//format
                     o_ctx.UNSIGNED_BYTE,//type
-                    v.v_o_instance_of_supported_pixels_data //pixels
+                    o_gpu_texture.v_o_instance_of_supported_pixels_data //pixels
+                );
+            }else{
+                o_ctx.texImage2D(
+                    // target, level, internalformat, width, height, border, format, type, offset
+                    o_ctx.TEXTURE_2D,//target,
+                    o_gpu_texture.n_webgl_level, //level
+                    o_gpu_texture.n_channel_layout_ingpu__webgl_internalFormat,//internalformat 
+                    o_gpu_texture.n_scl_x,//width,
+                    o_gpu_texture.n_scl_y,//height,
+                    o_gpu_texture.n_webgl_border,//border,,
+                    o_gpu_texture.n_channel_layout_input__webgl_srcFormat,//format,
+                    o_gpu_texture.n_datatype__webgl_srcType,//type,
+                    o_gpu_texture.a_n__typed//srcData
+                    //srcOffset
                 );
             }
-            console.log(v.v_o_instance_of_supported_pixels_data)
-            o_ctx.bindTexture(o_ctx.TEXTURE_2D, v.o_texture);
-
-            // Set the texture
-            console.log(s_prop)
-            var o_uniform_location = o_ctx.getUniformLocation(o_gpu_gateway.o_shader__program, s_prop);
-            o_ctx.activeTexture(o_ctx.TEXTURE0);
-            o_ctx.bindTexture(o_ctx.TEXTURE_2D, v.o_texture);
-            o_ctx.uniform1i(o_uniform_location, 0); // Tell the shader we bound the texture to TEXTURE0
-
+            
             // set texture parameters 
-            o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_S, o_ctx.CLAMP_TO_EDGE);
-            o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_T, o_ctx.CLAMP_TO_EDGE);
-            o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_MIN_FILTER, o_ctx.LINEAR);
+            // o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_S, o_ctx.CLAMP_TO_EDGE);
+            // o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_T, o_ctx.CLAMP_TO_EDGE);
+            // o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_MIN_FILTER, o_ctx.LINEAR);
             continue
         }
 
@@ -258,9 +297,10 @@ let f_update_data_in_o_gpu_gateway = function(
 
         let v_s_type = f_v_s_type__from_value(v);
         if(typeof v == 'number'){
-            let s_name_function = `uniform1${(s_prop.startsWith('n_i')?'i':'f')}`
+            let s_name_function = `uniform1${(s_prop.startsWith('n_i_')?'i':'f')}`
 
             o_ctx[s_name_function](o_ctx.getUniformLocation(o_gpu_gateway.o_shader__program, s_prop), v);
+            console.log(s_name_function)
             continue
         }
         let v_s_type_array = f_v_s_type_from_array(v);
@@ -387,10 +427,21 @@ let f_o_gpu_gateway__from_simple_fragment_shader = function(
     );
     return o_gpu_gateway2;
 }
-let f_o_gpu_texture__from_s_url = async function(s_url){
-    let o_image_data = await f_o_image_data_from_s_url(s_url);
+
+let f_o_gpu_texture__from_o_web_api_object = function(o_web_api_object){
+
+    let a_s_class_allowed = [
+        'ImageData',
+        'HTMLImageElement',
+        'HTMLCanvasElement',
+        'HTMLVideoElement',
+        'ImageBitmap'
+    ];
+    if(!a_s_class_allowed.includes(o_web_api_object?.constructor?.name)){
+        throw Error(`o_web_api_object must be an instance of one of the following web api classes ${a_s_class_allowed}`)
+    }
     let o_gpu_texture = new O_gpu_texture()
-    o_gpu_texture.v_o_instance_of_supported_pixels_data = o_image_data;
+    o_gpu_texture.v_o_instance_of_supported_pixels_data = o_web_api_object;
     return o_gpu_texture
 }
 export {
@@ -398,7 +449,7 @@ export {
     f_render_o_gpu_gateway, 
     o_state,
     f_update_data_in_o_gpu_gateway,
-    f_o_gpu_texture__from_s_url,
+    f_o_gpu_texture__from_o_web_api_object,
 
     // 'presets', aka i am lazy as fuck functions
     f_o_gpu_gateway__from_simple_fragment_shader

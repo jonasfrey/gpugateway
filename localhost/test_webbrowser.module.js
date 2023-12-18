@@ -1,7 +1,7 @@
 import {
     f_display_test_selection_or_run_selected_test_and_print_summary,
     f_o_test
-} from "https://deno.land/x/deno_test_server_and_client_side@1.0/mod.js"
+} from "https://deno.land/x/deno_test_server_and_client_side@1.1/mod.js"
 
 //readme.md:start
 
@@ -10,11 +10,12 @@ import {
 import {
     f_o_gpu_gateway, 
     f_o_gpu_gateway__from_simple_fragment_shader,
-    f_o_gpu_texture__from_s_url,
+    f_o_gpu_texture__from_o_web_api_object,
     f_render_o_gpu_gateway,
     f_update_data_in_o_gpu_gateway
 }
 from './client.module.js'
+import { O_gpu_texture } from "./classes.module.js";
 //readme.md:end
 
 let a_o_test = [
@@ -66,7 +67,7 @@ let a_o_test = [
         }
     ), 
     f_o_test(
-        'passing_data_to_shader_and_re_render', 
+        'passing_simple_data_to_shader_and_re_render', 
         async ()=>{
             //md: ## 5. pass data to the gpu and render continiously
             //md: of course it only gets real fun when we pass data to the gpu and render it frequently
@@ -74,7 +75,24 @@ let a_o_test = [
                 // we can update the data we want, its more performant to update only the data that changes
                 f_update_data_in_o_gpu_gateway(
                     {
-                        n_ms_time: window.performance.now()
+                        // in this object                       //inside shader/glsl
+                        // ------------------------------------------------------------------
+                        n_ms_time: window.performance.now(),    // "uniform float n_ms_time"
+                        o_scl : [
+                            o_canvas2.width,
+                            o_canvas2.height
+                        ],                                      // "uniform vec2 o_scl"
+                        o_pos : [0,-25, 89.122],                // "uniform vec3 o_pos"
+                        a_n_data : [0,-25, 89.122],             // "uniform vec4 a_n_data"
+
+                        //'n_i...' prefix will be converted to int
+                        n_i_b_pointer_down: 0,                  // "uniform int n_i_b_pointer_down" , 
+
+                        // data like longer arrays that 4 values, or strings are 'not supported'
+                        // it can be passed as typed arrays 
+                        a_v: [1,2,3,4,4,5,1,23,3,4,51,1],// not supported!
+                        s_name: 'hans'//not supported! 
+
                     },
                     o_gpu_gateway
                 );
@@ -83,8 +101,13 @@ let a_o_test = [
                     o_gpu_gateway
                 );
             },1000/60)
-            //md: as i said its more performant to update the data only if it has changed, so we can use for example 
-            //md: a mousemove event wich only triggers when the mouse is moved
+
+            o_gpu_gateway.o_canvas?.addEventListener('pointerdown', ()=>{
+                f_update_data_in_o_gpu_gateway({n_i_b_pointer_down: 1});
+            });
+            o_gpu_gateway.o_canvas?.addEventListener('pointerup', ()=>{
+                f_update_data_in_o_gpu_gateway({n_i_b_pointer_down: 0});
+            });
             o_gpu_gateway.o_canvas?.addEventListener('mousemove', function(o_e){
                 let o_bounding_rect = o_e.target.getBoundingClientRect();
                 let n_nor__x = (o_e.clientX - o_bounding_rect.left)/o_bounding_rect.width;
@@ -101,6 +124,13 @@ let a_o_test = [
     f_o_test(
         "passing_texture_to_shader", 
         async ()=>{
+            
+            let o_video = document.createElement('video');
+            o_video.controls = true;
+            document.body.appendChild(o_video)
+            // o_video.src = 'https://www.w3schools.com/tags/mov_bbb.mp4';//may not work because of tainted cross data
+            o_video.src = './mov_bbb.mp4';
+
             //md: ## 6. data types...
             //md: when working with the cpu and gpu communicating with each other it is a bit difficult with datatypes
             //md: the following shows what is possible and what should be used
@@ -110,25 +140,57 @@ let a_o_test = [
             o_canvas2.width = 300
             o_canvas2.height = 300
             document.body.appendChild(o_canvas2);
+            let o_data = {
+                // texture from image
+                logo_image_texture: f_o_gpu_texture__from_o_web_api_object(
+                    await(async ()=>{
+                        let o_mod_handyhelpers = await import('https://deno.land/x/handyhelpers@3.4/mod.js');
+                        return await o_mod_handyhelpers.f_o_image_data_from_s_url(
+                            './logo.jpg'
+                        )
+                    })()
+                ),
+                //also available
+                // texture_from_ImageData: f_o_gpu_texture__from_o_web_api_object(
+                //     o_instance_of_ImageData
+                // ),
+                // texture_from_HTMLImageElement: f_o_gpu_texture__from_o_web_api_object(
+                //     o_instance_of_HTMLImageElement
+                // ),
+                // texture_from_HTMLCanvasElement: f_o_gpu_texture__from_o_web_api_object(
+                //     o_instance_of_HTMLCanvasElement
+                // ),
+                // texture_from_HTMLVideoElement: f_o_gpu_texture__from_o_web_api_object(
+                //     o_instance_of_HTMLVideoElement
+                // ),
+                // texture_from_ImageBitmap: f_o_gpu_texture__from_o_web_api_object(
+                //     o_instance_of_ImageBitmap
+                // )
 
-
-
-            let o_data_for_gpu = {
-                logo_image_texture: await f_o_gpu_texture__from_s_url('./logo.jpg'),
-                // a simple number value will be unifrom float n_t; in shader
-                n_t: window.performance.now(), 
-                n_id_frame: 0,
-                // normal arrays can only contain up to 4 values
-                // will be of type vec2 , vec3 or vec4
-                o_scl : [o_canvas2.width,o_canvas2.height],
-                o_trn_nor_mouse : [0,0],
-                // 'n_i' variable starting with this prefix will be numbers integers to be specific
-                // n_i_b the b here only indicates that it should be interpreted as a boolean 
-                n_i_b_pointer_down: 0, 
-                n_i_b_mouse_moved_since_last_frame: 0,
-
+                // ...Object.assign({},
+                //     new Array(100).fill(0).map(v,n=>{
+                //         return {
+                //             [`auto_rand_texture${n}`]: 
+                //         }        
+                //     })
+                // )
+                // simple_texture: new O_gpu_texture(
+                //     new Uint8Array([
+                //         0,1,0,1,
+                //         1,1,1,0,
+                //         0,1,0,1,
+                //         1,1,1,1,
+                //     ].map(n=>parseInt(n*255))),
+                //     4,
+                //     4,
+                //     o_gpu_gateway2.o_ctx.UNSIGNED_BYTE,
+                //     o_gpu_gateway2.o_ctx.LUMINANCE,
+                //     o_gpu_gateway2.o_ctx.LUMINANCE,
+                //     0,
+                //     0
+                // )
             }
-
+            console.log(o_data)
             //md: ## 3. create the gpu gateway 
             let o_gpu_gateway2 = f_o_gpu_gateway(
                 o_canvas2, 
@@ -164,36 +226,260 @@ let a_o_test = [
                 // }
                 // // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this will be dynamically generated
 
-
+                // vec4 o_pixel_value_simple_texture = texture(simple_texture, o_trn_nor_pixel); 
+                // vec4 a_o_color[] = vec4[](
+                //     o_pixel_value_logo_image_texture, 
+                //     o_pixel_value_simple_texture
+                // );
 
                 // incoming variables
                 in vec2 o_trn_nor_pixel;
                 // outgoing variables
                 out vec4 fragColor;
                 // data passed from javascript 
-                uniform float n_ms_time;
-                uniform vec2 o_trn_nor_mouse;
                 uniform sampler2D logo_image_texture; 
+                // uniform sampler2D small_texture; 
+                // uniform sampler2D simple_texture; 
+                uniform sampler2D image_from_video;
 
                 void main() {
-                    vec4 o_pixel_value = texture(logo_image_texture, o_trn_nor_pixel); 
+                    vec4 o_pixel_value_logo_image_texture = texture(logo_image_texture, o_trn_nor_pixel); 
+                    // vec4 o_pixel_value_small_texture = texture(small_texture, o_trn_nor_pixel); 
+                    // vec4 o_pixel_value_simple_texture = texture(simple_texture, o_trn_nor_pixel); 
+                    vec4 o_pixel_value_image_from_video = texture(image_from_video, o_trn_nor_pixel); 
+
                     fragColor = vec4(
-                        vec3(o_pixel_value.r),
-                        1
+                        o_pixel_value_image_from_video.rgb,
+                        // vec3(o_pixel_value_image_from_video.r),
+                        // vec3(1.),
+                        1.0
                     );
                 }
                 `,
             )
             f_update_data_in_o_gpu_gateway(
-                {
-                    logo_image_texture: await f_o_gpu_texture__from_s_url('./logo.jpg'),
-                }, 
+                o_data,
                 o_gpu_gateway2,
             )
             f_render_o_gpu_gateway(
                 o_gpu_gateway2
             );
+            o_video.addEventListener('canplaythrough', function() {
+                // Now the video is ready to be used as a texture
+                window.setInterval(()=>{
+                    f_update_data_in_o_gpu_gateway(
+                        {image_from_video: f_o_gpu_texture__from_o_web_api_object(o_video)},
+                        o_gpu_gateway2,
+                    )
+                    f_render_o_gpu_gateway(
+                        o_gpu_gateway2
+                    );
+                },10)
+            }, false);
 
+
+            let o = f_o_gpu_gateway__from_simple_fragment_shader(
+                `#version 300 es
+                precision mediump float;
+                // incoming variables
+                in vec2 o_trn_nor_pixel;
+                // outgoing variables
+                out vec4 fragColor;
+                // data passed from javascript 
+                uniform sampler2D image_from_video;
+                void main() {
+                    vec4 o_pixel_value_image_from_video = texture(image_from_video, o_trn_nor_pixel); 
+                    fragColor = vec4(
+                        o_pixel_value_image_from_video.gbr,
+                        1.0
+                    );
+                }
+                `,
+                1000, 
+                1000
+            );
+            document.body.appendChild(o.o_canvas);
+            window.setInterval(
+                ()=>{
+                    f_update_data_in_o_gpu_gateway(
+                        {image_from_video: f_o_gpu_texture__from_o_web_api_object(o_video)},
+                        o,
+                    )
+                    f_render_o_gpu_gateway(o)
+                },
+                33
+            )
+        }
+    ), 
+    f_o_test(
+        "checking_if_when_i_pass_a_texture_to_one_shader_if_the_other_shader_also_has_the_data", 
+        async ()=>{
+            
+            let o_video = document.createElement('video');
+            o_video.controls = true;
+            document.body.appendChild(o_video)
+            // o_video.src = 'https://www.w3schools.com/tags/mov_bbb.mp4';//may not work because of tainted cross data
+            o_video.src = './mov_bbb.mp4';
+
+            let o_gg1 = f_o_gpu_gateway__from_simple_fragment_shader(
+                `#version 300 es
+                precision mediump float;
+                // incoming variables
+                in vec2 o_trn_nor_pixel;
+                // outgoing variables
+                out vec4 fragColor;
+                // data passed from javascript 
+                uniform sampler2D image_from_video;
+                void main() {
+                    vec4 o_pixel_value_image_from_video = texture(image_from_video, o_trn_nor_pixel); 
+                    fragColor = vec4(
+                        1.-o_pixel_value_image_from_video.rgb,
+                        1.0
+                    );
+                }
+                `,
+                100, 
+                100
+            );
+            document.body.appendChild(o_gg1.o_canvas);
+
+            window.setInterval(
+                ()=>{
+                    f_update_data_in_o_gpu_gateway(
+                        {image_from_video: f_o_gpu_texture__from_o_web_api_object(o_video)},
+                        o_gg1,
+                    )
+                    f_render_o_gpu_gateway(o_gg1)
+                },
+                33
+            )
+
+            let o_gg2 = f_o_gpu_gateway__from_simple_fragment_shader(
+                `#version 300 es
+                precision mediump float;
+                // incoming variables
+                in vec2 o_trn_nor_pixel;
+                // outgoing variables
+                out vec4 fragColor;
+                // data passed from javascript 
+                uniform sampler2D image_from_video;
+                void main() {
+                    vec4 o_pixel_value_image_from_video = texture(image_from_video, o_trn_nor_pixel); 
+                    fragColor = vec4(
+                        o_pixel_value_image_from_video.gbr,
+                        1.0
+                    );
+                }
+                `,
+                1000, 
+                1000
+            );
+            document.body.appendChild(o_gg2.o_canvas);
+            window.setInterval(
+                ()=>{
+                    // the data unfortunately is not available in the second shader, we also have to update it
+                    f_update_data_in_o_gpu_gateway(
+                        {image_from_video: f_o_gpu_texture__from_o_web_api_object(o_video)},
+                        o_gg2,
+                    )
+                    f_render_o_gpu_gateway(o_gg2)
+                },
+                33
+            )
+        }
+    ), 
+    f_o_test(
+        "webcam_test_with_multiple_textures", 
+        async ()=>{
+            
+            let o_video = document.createElement('video');
+            document.body.appendChild(o_video)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                o_video.srcObject = stream;
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+            }
+
+            let n_len_a_o_image_data = 32;
+            let n_idx_a_o_image_data = 0;
+            let a_o_image_data = new Array(n_len_a_o_image_data).fill(null);
+            // we have to wait a bit otherwise we get webgl2 context lost
+            let f_s_name_texture_from_n_idx = (n_idx) =>{return `image_${n_idx}`}
+            window.setTimeout(function(){
+
+                let o_gg1 = f_o_gpu_gateway__from_simple_fragment_shader(
+                    `#version 300 es
+                    precision mediump float;
+                    // incoming variables
+                    in vec2 o_trn_nor_pixel;
+                    // outgoing variables
+                    out vec4 fragColor;
+                    // data passed from javascript 
+                    ${new Array(n_len_a_o_image_data).fill(0).map((v,n_idx)=>{
+                        return `uniform sampler2D ${f_s_name_texture_from_n_idx(n_idx)};`
+                    }).join('\n')}
+                    uniform sampler2D image_from_video;
+                    uniform float n_idx_newest_texture;
+                    void main() {
+                        vec2 o_trn_flipped = vec2(
+                            o_trn_nor_pixel.x, 
+                            1.-o_trn_nor_pixel.y
+                        );
+                        vec4 a_o_pixel[] = vec4[](
+                            ${new Array(n_len_a_o_image_data).fill(0).map((v,n_idx)=>{
+                                return `texture(${f_s_name_texture_from_n_idx(n_idx)}, o_trn_flipped)`
+                            }).join('\n,')}
+                        );
+                        float n_idx = o_trn_nor_pixel.x*${n_len_a_o_image_data}.;
+                        n_idx = mod(n_idx+n_idx_newest_texture, ${n_len_a_o_image_data}.);
+                        // if(n_idx == n_idx_newest_texture){
+                            fragColor = vec4(
+                                a_o_pixel[int(n_idx)].rgb,
+                                // a_o_pixel[0].rgb,
+                                1.0
+                            );
+                        // }
+                        // fragColor = vec4(n_idx_newest_texture/32.);
+                    }
+                    `,
+                    500, 
+                    500
+                );
+                document.body.appendChild(o_gg1.o_canvas);
+                window.setInterval(
+                    ()=>{
+                        if(o_video.HAVE_CURRENT_DATA){
+                            let o_can = document.createElement('canvas');
+                            o_can.width = o_video.videoWidth
+                            o_can.height = o_video.videoHeight
+                            let o_ctx2 = o_can.getContext('2d')
+                            o_ctx2.drawImage(o_video, 0, 0, o_can.width, o_can.height);
+                            const o_img_data = o_ctx2.getImageData(0, 0, o_can.width, o_can.height);
+                            a_o_image_data[n_idx_a_o_image_data] = o_img_data
+                            f_update_data_in_o_gpu_gateway(
+                                {
+                                    n_idx_newest_texture: n_idx_a_o_image_data,
+                                    [`image_${n_idx_a_o_image_data}`]: 
+                                        f_o_gpu_texture__from_o_web_api_object(o_img_data)
+                                },
+                                o_gg1,
+                            )
+                            f_render_o_gpu_gateway(o_gg1)
+                            n_idx_a_o_image_data = (n_idx_a_o_image_data+1)%n_len_a_o_image_data
+
+                        }
+                    },
+                    16
+                )
+                // Now the video is ready to be used as a texture
+                // updateTexture();
+            },2000)
+
+
+            o_video.autoplay = true
+
+            // http://localhost:8080/test_webbrowser.html#webcam_test_with_multiple_textures
         }
     ), 
     f_o_test(

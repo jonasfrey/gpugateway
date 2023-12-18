@@ -1,24 +1,26 @@
 class O_gpu_array_data{ 
     // i really dont want to call this texture or image because just because webgl screwed up with having a option to pass 1d arrays to the gpu
     constructor(
-        o_scl, // we actually would only need the scl_x (width)
+        n_scl_x, // we actually would only need the scl_x (width)
         s_type,
         a_n__typed
     ){
-        this.o_scl = o_scl
+        this.n_scl_x = n_scl_x
         this.s_type = s_type
         this.a_n__typed = a_n__typed
         this.s_prop_name = null 
+        this.o_gpu_texture = null
     }
 }
+
 class O_gpu_texture{
     constructor(
         a_n__typed,
         n_scl_x,
         n_scl_y,
         n_datatype__webgl_srcType = 0,
-        n_channel_layout_ingpu__webgl_internalFormat = 0, 
         n_channel_layout_input__webgl_srcFormat = 0, 
+        n_channel_layout_ingpu__webgl_internalFormat = null, 
         n_webgl_level = 0, 
         n_webgl_border = 0, 
 
@@ -38,8 +40,8 @@ class O_gpu_texture{
         this.v_o_instance_of_supported_pixels_data = null; //ImageData , HTMLImageElement , HTMLCanvasElement , HTMLVideoElement , ImageBitmap
         this.o_texture = null, 
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType
-        this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat
         this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat
+        this.n_channel_layout_ingpu__webgl_internalFormat = (n_channel_layout_ingpu__webgl_internalFormat) ? n_channel_layout_ingpu__webgl_internalFormat : n_channel_layout_input__webgl_srcFormat 
         this.n_webgl_level = n_webgl_level
         this.n_webgl_border = n_webgl_border
         this.s_name_in_shader = null;
@@ -99,11 +101,35 @@ class O_shader_error{
         this.s_rustlike_error = s_rustlike_error
     }
 }
+class O_channel_layout{
+    constructor(
+        s_name,
+        s_base_format,
+        s_bits_channel_0,
+        s_bits_channel_1,
+        s_bits_channel_2,
+        s_bits_channel_3,
+        n_shared_bits,
+        b_color_renderable,
+        b_texture_filterable
+    ){
+        this.s_name = s_name,
+        this.s_base_format = s_base_format,
+        this.s_bits_channel_0 = s_bits_channel_0,
+        this.s_bits_channel_1 = s_bits_channel_1,
+        this.s_bits_channel_2 = s_bits_channel_2,
+        this.s_bits_channel_3 = s_bits_channel_3,
+        this.n_shared_bits = n_shared_bits,
+        this.b_color_renderable = b_color_renderable,
+        this.b_texture_filterable = b_texture_filterable
+    }
+}
 
 export {
     O_gpu_array_data, 
     O_gpu_gateway,
     O_shader_info, 
     O_shader_error, 
-    O_gpu_texture
+    O_gpu_texture, 
+    O_channel_layout
 }

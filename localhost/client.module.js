@@ -6,6 +6,9 @@ import {
 
 import { O_gpu_gateway, O_gpu_texture, O_shader_error, O_shader_info } from "./classes.module.js";
 
+
+// No need to delete o_can and o_ctx; they will be garbage collected if not referenced. 
+
 let o_state = {
     a_o_gpu_data : []
 };
@@ -83,9 +86,9 @@ let f_o_shader_info = function(
     o_ctx
 ){
     let o_shader_info = new O_shader_info(
-        s_type, 
-        s_code_shader, 
-        null, 
+        s_type,
+        s_code_shader,
+        null,
         []
     )
     let a_s_type__allowed = ['vertex', 'fragment'];
@@ -116,11 +119,11 @@ let f_o_gpu_gateway = function(
     s_code_shader__fragment = '', 
 ) {
     let o_ctx = o_canvas.getContext(
-        'webgl2',
+        s_context_webgl_version,
         {preserveDrawingBuffer: true} // o_canvas.getContext(...).readPixels(...) will return 0 without this
     );
     if (!o_ctx) {
-        throw Error("WebGL2 is not supported or disabled in this browser.");
+        throw Error(`${s_context_webgl_version} is not supported or disabled in this browser.`);
     }
 
     // console.error('ERROR compiling fragment shader!', s_shader_info_log);
@@ -172,7 +175,7 @@ let f_o_gpu_gateway = function(
 }
 
 let f_render_o_gpu_gateway = function(o_gpu_gateway){
-        o_gpu_gateway.o_ctx = o_gpu_gateway.o_canvas.getContext('webgl2')
+        o_gpu_gateway.o_ctx = o_gpu_gateway.o_canvas.getContext(s_context_webgl_version)
         var o_buffer_position = o_gpu_gateway.o_ctx.createBuffer();
         o_gpu_gateway.o_ctx.bindBuffer(o_gpu_gateway.o_ctx.ARRAY_BUFFER, o_buffer_position);
 
@@ -211,7 +214,7 @@ let f_update_data_in_o_gpu_gateway = function(
     // const maxFragmentArrays = Math.floor(maxFragmentUniformVectors / 25);
     // console.log('Max Vertex Arrays:', maxVertexArrays);
     // console.log('Max Fragment Arrays:', maxFragmentArrays);
-    o_gpu_gateway.o_canvas.getContext('webgl2');// WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost , can occur when the programmer uses different canvases or video or image elemnets
+    o_gpu_gateway.o_canvas.getContext(s_context_webgl_version);// WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost , can occur when the programmer uses different canvases or video or image elemnets
     let o_ctx = o_gpu_gateway.o_ctx;
     // debugger
     for(let s_prop in o_data){
@@ -450,6 +453,71 @@ export {
     o_state,
     f_update_data_in_o_gpu_gateway,
     f_o_gpu_texture__from_o_web_api_object,
+
+    n_webgl_type__u8,
+    n_webgl_type__i8,
+    n_webgl_type__u16,
+    n_webgl_type__i16,
+    n_webgl_type__u32,
+    n_webgl_type__i32,
+    n_webgl_type__f32,
+
+    n_webgl_vec4_RGBA,
+    n_webgl_vec4_RGB,
+    n_webgl_vec4_LUMINANCE_ALPHA,
+    n_webgl_vec4_LUMINANCE,
+    n_webgl_vec4_ALPHA,
+
+    n_webgl_vec4_R8_SNORM,
+    n_webgl_vec4_RG8,
+    n_webgl_vec4_RG8_SNORM,
+    n_webgl_vec4_RGB8,
+    n_webgl_vec4_RGB8_SNORM,
+    n_webgl_vec4_RGB565,
+    n_webgl_vec4_RGBA4,
+    n_webgl_vec4_RGB5_A1,
+    n_webgl_vec4_RGBA8,
+    n_webgl_vec4_RGBA8_SNORM,
+    n_webgl_vec4_RGB10_A2,
+    n_webgl_vec4_RGB10_A2UI,
+    n_webgl_vec4_SRGB8,
+    n_webgl_vec4_SRGB8_ALPHA8,
+    n_webgl_vec4_R16F,
+    n_webgl_vec4_RG16F,
+    n_webgl_vec4_RGB16F,
+    n_webgl_vec4_RGBA16F,
+    n_webgl_vec4_R32F,
+    n_webgl_vec4_RG32F,
+    n_webgl_vec4_RGB32F,
+    n_webgl_vec4_RGBA32F,
+    n_webgl_vec4_R11F_G11F_B10F,
+    n_webgl_vec4_RGB9_E5,
+    n_webgl_vec4_R8I,
+    n_webgl_vec4_R8UI,
+    n_webgl_vec4_R16I,
+    n_webgl_vec4_R16UI,
+    n_webgl_vec4_R32I,
+    n_webgl_vec4_R32UI,
+    n_webgl_vec4_RG8I,
+    n_webgl_vec4_RG8UI,
+    n_webgl_vec4_RG16I,
+    n_webgl_vec4_RG16UI,
+    n_webgl_vec4_RG32I,
+    n_webgl_vec4_RG32UI,
+    n_webgl_vec4_RGB8I,
+    n_webgl_vec4_RGB8UI,
+    n_webgl_vec4_RGB16I,
+    n_webgl_vec4_RGB16UI,
+    n_webgl_vec4_RGB32I,
+    n_webgl_vec4_RGB32UI,
+    n_webgl_vec4_RGBA8I,
+    n_webgl_vec4_RGBA8UI,
+    n_webgl_vec4_RGBA16I,
+    n_webgl_vec4_RGBA16UI,
+    n_webgl_vec4_RGBA32I,
+    n_webgl_vec4_RGBA32UI,
+
+    o_webgl_info,
 
     // 'presets', aka i am lazy as fuck functions
     f_o_gpu_gateway__from_simple_fragment_shader

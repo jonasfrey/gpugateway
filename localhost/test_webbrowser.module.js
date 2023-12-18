@@ -12,10 +12,18 @@ import {
     f_o_gpu_gateway__from_simple_fragment_shader,
     f_o_gpu_texture__from_o_web_api_object,
     f_render_o_gpu_gateway,
-    f_update_data_in_o_gpu_gateway
+    f_update_data_in_o_gpu_gateway,
+
+    n_webgl_type__f32,
+
+    n_webgl_type__u8,
+    n_webgl_vec4_LUMINANCE,
+    n_webgl_vec4_RGBA,
+    n_webgl_vec4_RGBA32F,
+    n_webgl_vec4_RGBA8
 }
 from './client.module.js'
-import { O_gpu_texture } from "./classes.module.js";
+import { O_gpu_array_data, O_gpu_texture } from "./classes.module.js";
 //readme.md:end
 
 let a_o_test = [
@@ -482,6 +490,140 @@ let a_o_test = [
             // http://localhost:8080/test_webbrowser.html#webcam_test_with_multiple_textures
         }
     ), 
+    f_o_test(
+        "type_test", 
+        async ()=>{
+            // now since there are only 32 textures that can be passed on my gpu , 
+            // we have to have multiple 1d, 2d, 3d, 4d, nd, arrays per texture 
+            let o_mod_handyhelpers = await import('https://deno.land/x/handyhelpers@3.4/mod.js');
+            let o_image_data = await o_mod_handyhelpers.f_o_image_data_from_s_url(
+                './logo.jpg'
+            )
+            console.log(o_image_data);
+            let o_data = {
+                logo_image_texture: new O_gpu_texture(
+                    o_image_data.data, 
+                    o_image_data.width, 
+                    o_image_data.height,
+                    'a_n_u8',
+                    n_webgl_type__u8,
+                    n_webgl_vec4_RGBA
+                )
+            }
+            
+            let o_gg1 = f_o_gpu_gateway__from_simple_fragment_shader(
+                `#version 300 es
+                precision mediump float;
+                // incoming variables
+                in vec2 o_trn_nor_pixel;
+                // outgoing variables
+                out vec4 fragColor;
+                // data passed from javascript 
+
+                uniform sampler2D logo_image_texture;
+                void main() {
+                    vec2 o_trn_flipped = vec2(
+                        o_trn_nor_pixel.x, 
+                        1.-o_trn_nor_pixel.y
+                    );//* (1./4.);
+                    vec4 o = texture(logo_image_texture, o_trn_flipped);
+
+                    fragColor = vec4(o);
+                }
+                `,
+                500, 
+                500
+            );
+            document.body.appendChild(o_gg1.o_canvas);
+            f_update_data_in_o_gpu_gateway(o_data, o_gg1)
+            f_render_o_gpu_gateway(o_gg1)
+
+        }
+    ), 
+    // f_o_test(
+    //     "pass_more_arrays", 
+    //     async ()=>{
+    //         // now since there are only 32 textures that can be passed on my gpu , 
+    //         // we have to have multiple 1d, 2d, 3d, 4d, nd, arrays per texture 
+    //         let o_data = {
+    //             a_n_f32__my_custom_array: new O_gpu_array_data(
+    //                 100000,
+
+    //             )
+    //             new Float32Array(
+    //                 new Array(100000).fill(0).map(
+    //                     (n)=>{
+    //                         return (Math.random()-.5)*123456
+    //                     }
+    //                 )
+    //             )
+    //         }
+            
+    //         let o_gg1 = f_o_gpu_gateway__from_simple_fragment_shader(
+    //             `#version 300 es
+    //             precision mediump float;
+    //             // incoming variables
+    //             in vec2 o_trn_nor_pixel;
+    //             // outgoing variables
+    //             out vec4 fragColor;
+    //             // data passed from javascript 
+
+    //             uniform sampler2D image_from_video;
+    //             uniform float n_idx_newest_texture;
+    //             void main() {
+    //                 vec2 o_trn_flipped = vec2(
+    //                     o_trn_nor_pixel.x, 
+    //                     1.-o_trn_nor_pixel.y
+    //                 );
+    //                 vec4 a_o_pixel[] = vec4[](
+    //                     ${new Array(n_len_a_o_image_data).fill(0).map((v,n_idx)=>{
+    //                         return `texture(${f_s_name_texture_from_n_idx(n_idx)}, o_trn_flipped)`
+    //                     }).join('\n,')}
+    //                 );
+    //                 float n_idx = o_trn_nor_pixel.x*${n_len_a_o_image_data}.;
+    //                 n_idx = mod(n_idx+n_idx_newest_texture, ${n_len_a_o_image_data}.);
+    //                 // if(n_idx == n_idx_newest_texture){
+    //                     fragColor = vec4(
+    //                         a_o_pixel[int(n_idx)].rgb,
+    //                         // a_o_pixel[0].rgb,
+    //                         1.0
+    //                     );
+    //                 // }
+    //                 // fragColor = vec4(n_idx_newest_texture/32.);
+    //             }
+    //             `,
+    //             500, 
+    //             500
+    //         );
+    //         document.body.appendChild(o_gg1.o_canvas);
+    //         window.setInterval(
+    //             ()=>{
+    //                 if(o_video.HAVE_CURRENT_DATA){
+    //                     let o_can = document.createElement('canvas');
+    //                     o_can.width = o_video.videoWidth
+    //                     o_can.height = o_video.videoHeight
+    //                     let o_ctx2 = o_can.getContext('2d')
+    //                     o_ctx2.drawImage(o_video, 0, 0, o_can.width, o_can.height);
+    //                     const o_img_data = o_ctx2.getImageData(0, 0, o_can.width, o_can.height);
+    //                     a_o_image_data[n_idx_a_o_image_data] = o_img_data
+    //                     f_update_data_in_o_gpu_gateway(
+    //                         {
+    //                             n_idx_newest_texture: n_idx_a_o_image_data,
+    //                             [`image_${n_idx_a_o_image_data}`]: 
+    //                                 f_o_gpu_texture__from_o_web_api_object(o_img_data)
+    //                         },
+    //                         o_gg1,
+    //                     )
+    //                     f_render_o_gpu_gateway(o_gg1)
+    //                     n_idx_a_o_image_data = (n_idx_a_o_image_data+1)%n_len_a_o_image_data
+
+    //                 }
+    //             },
+    //             16
+    //         )
+
+    //     }
+    // ), 
     f_o_test(
         "helper_function_to_quickly_create_shader", 
         async ()=>{

@@ -1,4 +1,4 @@
-import { O_channel_layout } from "./classes.module"
+import { O_channel_layout } from "./classes.module.js"
 
 let f_get_possible_channel_layouts = function(){
     //on https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D?retiredLocale=de
@@ -168,6 +168,10 @@ let o_webgl_info = {
                 [
                     "(WebGL2 only) The maximum number of color attachments that can be used to render to simultaneously in the fragment shader.",
                     "MAX_DRAW_BUFFERS"
+                ], 
+                [
+                    "the maximum layers for a texture arrray, (a texture can include multiple textures)",
+                    "MAX_ARRAY_TEXTURE_LAYERS"
                 ]
 
         ].map(a_s=>{
@@ -878,4 +882,8 @@ o_channel_layout__8
 ,o_channel_layout__ui16_ui16_ui16_ui16
 ,o_channel_layout__i32_i32_i32_i32
 ,o_channel_layout__ui32_ui32_ui32_ui32
+}
+
+export{
+    s_context_webgl_version
 }

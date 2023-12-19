@@ -4,9 +4,11 @@ import {
 } from "https://deno.land/x/handyhelpers@3.3/mod.js"
 
 
-import { O_gpu_gateway, O_gpu_texture, O_shader_error, O_shader_info } from "./classes.module.js";
+import { O_gpu_gateway, O_gpu_texture, O_gpu_texture_array, O_gpu_texture_array_item, O_shader_error, O_shader_info } from "./classes.module.js";
 
-
+import {
+    s_context_webgl_version
+} from './runtimedata.module.js'
 // No need to delete o_can and o_ctx; they will be garbage collected if not referenced. 
 
 let o_state = {
@@ -219,6 +221,26 @@ let f_update_data_in_o_gpu_gateway = function(
     // debugger
     for(let s_prop in o_data){
         let v = o_data[s_prop];
+        if(v instanceof O_gpu_texture_array_item){
+            let o_gpu_texture_array = o_gpu_gateway.a_o_gpu_texture_array.find(o=>o.n_gpu_data_format_webgl_type == v.n_gpu_data_format_webgl_type);
+            if(!o_gpu_texture_array){
+                o_gpu_texture_array = new O_gpu_texture_array(
+                    v.n_gpu_data_format_webgl_type, 
+                    o_ctx.createTexture()                    
+                );
+                o_ctx.bindTexture(o_ctx.TEXTURE_2D_ARRAY, o_gpu_texture_array.o_texture);
+                o_ctx.texStorage3D(
+                    o_ctx.TEXTURE_2D_ARRAY,
+                    0,//level
+                    v.n_gpu_data_format_webgl_type,
+                    width,
+                    height,
+                    depth
+                );
+
+            }
+            continue;
+        }
         if(v instanceof O_gpu_texture){
             v.s_name_in_shader = s_prop
             let n_idx_o_gpu_texture = -1;
@@ -454,70 +476,6 @@ export {
     f_update_data_in_o_gpu_gateway,
     f_o_gpu_texture__from_o_web_api_object,
 
-    n_webgl_type__u8,
-    n_webgl_type__i8,
-    n_webgl_type__u16,
-    n_webgl_type__i16,
-    n_webgl_type__u32,
-    n_webgl_type__i32,
-    n_webgl_type__f32,
-
-    n_webgl_vec4_RGBA,
-    n_webgl_vec4_RGB,
-    n_webgl_vec4_LUMINANCE_ALPHA,
-    n_webgl_vec4_LUMINANCE,
-    n_webgl_vec4_ALPHA,
-
-    n_webgl_vec4_R8_SNORM,
-    n_webgl_vec4_RG8,
-    n_webgl_vec4_RG8_SNORM,
-    n_webgl_vec4_RGB8,
-    n_webgl_vec4_RGB8_SNORM,
-    n_webgl_vec4_RGB565,
-    n_webgl_vec4_RGBA4,
-    n_webgl_vec4_RGB5_A1,
-    n_webgl_vec4_RGBA8,
-    n_webgl_vec4_RGBA8_SNORM,
-    n_webgl_vec4_RGB10_A2,
-    n_webgl_vec4_RGB10_A2UI,
-    n_webgl_vec4_SRGB8,
-    n_webgl_vec4_SRGB8_ALPHA8,
-    n_webgl_vec4_R16F,
-    n_webgl_vec4_RG16F,
-    n_webgl_vec4_RGB16F,
-    n_webgl_vec4_RGBA16F,
-    n_webgl_vec4_R32F,
-    n_webgl_vec4_RG32F,
-    n_webgl_vec4_RGB32F,
-    n_webgl_vec4_RGBA32F,
-    n_webgl_vec4_R11F_G11F_B10F,
-    n_webgl_vec4_RGB9_E5,
-    n_webgl_vec4_R8I,
-    n_webgl_vec4_R8UI,
-    n_webgl_vec4_R16I,
-    n_webgl_vec4_R16UI,
-    n_webgl_vec4_R32I,
-    n_webgl_vec4_R32UI,
-    n_webgl_vec4_RG8I,
-    n_webgl_vec4_RG8UI,
-    n_webgl_vec4_RG16I,
-    n_webgl_vec4_RG16UI,
-    n_webgl_vec4_RG32I,
-    n_webgl_vec4_RG32UI,
-    n_webgl_vec4_RGB8I,
-    n_webgl_vec4_RGB8UI,
-    n_webgl_vec4_RGB16I,
-    n_webgl_vec4_RGB16UI,
-    n_webgl_vec4_RGB32I,
-    n_webgl_vec4_RGB32UI,
-    n_webgl_vec4_RGBA8I,
-    n_webgl_vec4_RGBA8UI,
-    n_webgl_vec4_RGBA16I,
-    n_webgl_vec4_RGBA16UI,
-    n_webgl_vec4_RGBA32I,
-    n_webgl_vec4_RGBA32UI,
-
-    o_webgl_info,
 
     // 'presets', aka i am lazy as fuck functions
     f_o_gpu_gateway__from_simple_fragment_shader

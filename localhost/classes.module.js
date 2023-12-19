@@ -18,12 +18,15 @@ class O_gpu_texture_collection{
         a_n__typed,
         n_scl_x,
         n_scl_y,
+        n_scl_x_max = 0,
+        n_scl_y_max = 0,
         n_datatype__webgl_srcType = 0,
         n_channel_layout_input__webgl_srcFormat = 0, 
         n_channel_layout_ingpu__webgl_internalFormat = null, 
         n_webgl_level = 0, 
         n_webgl_border = 0, 
     ){
+        
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
         this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat,
         this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat, 
@@ -31,16 +34,20 @@ class O_gpu_texture_collection{
         this.n_webgl_border = n_webgl_border
         this.n_scl_x = n_scl_x
         this.n_scl_y = n_scl_y
+        this.n_scl_x_max = n_scl_x_max
+        this.n_scl_y_max = n_scl_y_max
         this.a_n__typed = a_n__typed
         this.o_texture = null
         this.s_name_in_shader = null;
         this.n_idx = null;
+        this.n_trn_y_after_last_item = 0
     }
 }
 
 class O_gpu_texture_collection_item{
     constructor(
         a_n__typed, 
+
         n_scl_x, 
         n_datatype__webgl_srcType,
         n_channel_layout_input__webgl_srcFormat,
@@ -48,12 +55,20 @@ class O_gpu_texture_collection_item{
     ){
         this.a_n__typed = a_n__typed
         this.n_scl_x = n_scl_x
+        this.n_scl_x_on_texture = 0;
+        this.n_scl_y_on_texture = 0;
+        this.n_trn_x_on_texture = 0;
+        this.n_trn_y_on_texture = 0;
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
         this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat,
         this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat, 
         this.o_texture = null;
         this.s_prop = null;
         this.o_gpu_texture_collection = null;
+        // since there are no absolute basic modular neccessary functions to update the array data of a texture BY INDEX!!!!
+        // there are multiple array operations necessary to  update the data of a nD array embedded and represented as a part of a 1d array
+        // therefore i have decided to padd the data to the width of the texture which is the maxwidth
+        this.a_n__typed__padded = null;
 
     }
 }

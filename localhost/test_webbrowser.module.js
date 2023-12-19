@@ -672,19 +672,15 @@ let a_o_test = [
 
             document.body.appendChild(o_gg1.o_canvas);
 
-
-
-
             let gl = o_gg1?.o_ctx;
 
 
-            const ext = gl.getExtension('OES_texture_float');
-
+            const ext = gl.getExtension('OES_texture_float_linear');
             console.log(
                 `gl.getSupportedExtensions(): ${gl.getSupportedExtensions()}`
             )
             console.log(
-                `gl.getExtension('OES_texture_float') ${gl.getExtension('OES_texture_float')}`
+                `gl.getExtension('OES_texture_float_linear') ${gl.getExtension('OES_texture_float_linear')}`
             )
             if (!ext) {
               // Floating-point textures not supported; handle gracefully
@@ -702,8 +698,8 @@ let a_o_test = [
             const texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, texture);
 
-            const width = maxTextureSize/32;//16384/2;;
-            const height = maxTextureSize/32;//16384/2;;
+            const width = 10000;//11000//maxTextureSize;//16384;;
+            const height = 10000;//11000//maxTextureSize;//16384;;
 
             // Generate random data for the texture
             let n_bytes_per_channel = 4;
@@ -711,6 +707,7 @@ let a_o_test = [
             let n_channels_per_pixel = 4;
             const n_bytes = n_pixels * n_bytes_per_channel * n_channels_per_pixel; // Assuming RGBA format
             const maxArraySize = Math.floor(Number.MAX_SAFE_INTEGER / 4); // Divide by 4 for 4-byte integers (32 bits per element)
+            // JavaScript arrays are zero-based and use 32-bit indexes: the index of the first element is 0, and the highest possible index is 4294967294 (232−2), for a maximum array size of 4,294,967,295 elements.
             console.log('Maximum js array size:', maxArraySize);
             console.log(
                 {
@@ -728,7 +725,7 @@ let a_o_test = [
             let n_format;
             let n_type;
             let randomData;
-            
+
             if(b_float_texture){
 
                 let n_bytes_per_element = 4;
@@ -783,7 +780,47 @@ let a_o_test = [
             } else {
                 console.log('Texture created successfully.');
             }
+
+            let n_ms = 0;
             
+            console.log('update data the old way')
+
+            // example of how we can update a region of the texture 
+            // Bind the texture you want to update
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            // Define the sub-region you want to update
+            var xoffset = 0;
+            var yoffset = height/2;
+            var width2 = width;
+            var height2 = 1000;
+            let n_idx_start= yoffset*width
+            let n_length = width2 * height2 * 4;
+            let pixels;
+
+            if(b_float_texture){
+
+                randomData.set(new Float32Array(n_length))
+
+                pixels = new Float32Array(width2 * height2 * 4); // or your pixel source
+            }else{
+                pixels = new Uint8Array(width2 * height2 * 4); // or your pixel source
+                randomData.set(new Uint8Array(n_length))
+            }
+            let n_data_sub_array_not_copied_to_update = randomData.subarray(
+                n_idx_start,
+                n_idx_start+n_length
+            );
+            // console.log(n_data_sub_array_not_copied_to_update)
+            var format = n_format;
+            var type = n_type;
+
+
+            // Update the texture
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, xoffset, yoffset, width2, height2, format, type, pixels);
+
+            // Unbind the texture
+            // gl.bindTexture(gl.TEXTURE_2D, null);
 
             // f_update_data_in_o_gpu_gateway({}, o_gg1)
             f_render_o_gpu_gateway(o_gg1)

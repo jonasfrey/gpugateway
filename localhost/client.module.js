@@ -4,7 +4,7 @@ import {
 } from "https://deno.land/x/handyhelpers@3.3/mod.js"
 
 
-import { O_gpu_gateway, O_gpu_texture, O_gpu_texture_array, O_gpu_texture_array_item, O_shader_error, O_shader_info } from "./classes.module.js";
+import { O_gpu_gateway, O_gpu_texture, O_gpu_texture_collection, O_shader_error, O_shader_info } from "./classes.module.js";
 
 import {
     s_context_webgl_version
@@ -221,26 +221,92 @@ let f_update_data_in_o_gpu_gateway = function(
     // debugger
     for(let s_prop in o_data){
         let v = o_data[s_prop];
-        if(v instanceof O_gpu_texture_array_item){
-            let o_gpu_texture_array = o_gpu_gateway.a_o_gpu_texture_array.find(o=>o.n_gpu_data_format_webgl_type == v.n_gpu_data_format_webgl_type);
-            if(!o_gpu_texture_array){
-                o_gpu_texture_array = new O_gpu_texture_array(
-                    v.n_gpu_data_format_webgl_type, 
-                    o_ctx.createTexture()                    
-                );
-                o_ctx.bindTexture(o_ctx.TEXTURE_2D_ARRAY, o_gpu_texture_array.o_texture);
-                o_ctx.texStorage3D(
-                    o_ctx.TEXTURE_2D_ARRAY,
-                    0,//level
-                    v.n_gpu_data_format_webgl_type,
-                    width,
-                    height,
-                    depth
-                );
+        // if(v instanceof O_gpu_texture_collection_item){
+        //     let o_gpu_texture_collection_item =  o_gpu_gateway.a_o_gpu_texture_collection_item.find(
+        //         o=>o.s_prop == v.s_prop
+        //     );
+        //     let b_reinit = false;
+        //     if(!o_gpu_texture_collection_item){
+        //         o_gpu_texture_collection_item = v;
+        //         o_gpu_texture_collection_item.s_prop = s_prop;
+        //         o_gpu_gateway.a_o_gpu_texture_collection_item.push(
+        //             o_gpu_texture_collection_item
+        //         );
+        //         b_reinit = true;
+        //     }
+        //     // if texture dimensions or datatype have changed we have to re-calculate all the 
+        //     // stuff for easily accessing a texture
+        //     if(
+        //         v.n_scl_x != o_gpu_texture_collection_item.n_scl_x
+        //         ||
+        //         v.n_datatype__webgl_srcType != o_gpu_texture_collection_item.n_datatype__webgl_srcType
+        //         ||
+        //         v.n_channel_layout_input__webgl_srcFormat != o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat
+        //         ||
+        //         v.n_channel_layout_ingpu__webgl_internalFormat != o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat
+        //     ){
+        //         b_reinit = true;
+        //     } 
+        //     let o_gpu_texture_collection = o_gpu_texture_collection_item.o_gpu_texture_collection
+        //     if(!o_gpu_texture_collection){
+        //         let o_gpu_texture_collection__with_free_space = o_gpu_gateway.a_o_gpu_texture_collection.find(
+        //             o=>{
+        //                 return o.n_datatype__webgl_srcType == o_gpu_texture_collection_item.n_datatype__webgl_srcType
+        //                     && o.n_channel_layout_input__webgl_srcFormat == o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat
+        //                     && o.n_channel_layout_ingpu__webgl_internalFormat == o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat
+        //             }
+        //         );
+        //         if(!o_gpu_texture_collection__with_free_space){
+        //             let n_scl_x = o_webgl_info.o_MAX_TEXTURE_SIZE.v;
+        //             let n_scl_y = Math.ceil(o_gpu_texture_collection_item.n_scl_x / n_scl_x);
+        //             o_gpu_texture_collection__with_free_space = new O_gpu_texture_collection(
+        //                 o_gpu_texture_collection_item.n_datatype__webgl_srcType,
+        //                 o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat,
+        //                 o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat,
+        //                 o_webgl_info.o_MAX_TEXTURE_SIZE.v, 
+        //                 n_scl_y,
+        //                 new Uint8Array(n_scl_x*n_scl_y)
+        //             );
+        //             o_gpu_texture_collection__with_free_space.n_idx = o_gpu_gateway.a_o_gpu_texture_collection.length + 1;
+        //             o_gpu_texture_collection__with_free_space.o_texture = o_ctx.createTexture();
+        //             o_gpu_texture_collection__with_free_space.s_name_in_shader = [
+        //                 'o_gpu_texture_collection', 
+        //                 o_gpu_texture_collection__with_free_space.n_idx, 
+        //                 n_datatype__webgl_srcType
+        //                 n_channel_layout_input__webgl_srcFormat
+        //                 n_channel_layout_ingpu__webgl_internalFormat
+        //             ].join('_')
+        //             o_ctx.activeTexture(o_ctx.TEXTURE0 + o_gpu_texture_collection__with_free_space.n_idx);
+        //             o_ctx.bindTexture(o_ctx.TEXTURE_2D, o_gpu_texture_collection__with_free_space.o_texture);
+        //             var o_uniform_location = o_ctx.getUniformLocation(
+        //                 o_gpu_gateway.o_shader__program,
+        //                 o_gpu_texture_collection__with_free_space.s_name_in_shader
+        //             );
+        //             o_ctx.uniform1i(o_uniform_location, o_gpu_texture_collection__with_free_space.n_idx); // Tell the shader we bound the texture to TEXTURE0
+        //             //textures scale sizes must be power of two
+        //             // otherwise use this 
+        //             o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_S, o_ctx.CLAMP_TO_EDGE);
+        //             o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_T, o_ctx.CLAMP_TO_EDGE);
+        //             o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_MIN_FILTER, o_ctx.LINEAR);
+        //         }
 
-            }
-            continue;
-        }
+        //     }
+        //     o_ctx.texImage2D(
+        //         // target, level, internalformat, width, height, border, format, type, offset
+        //         o_ctx.TEXTURE_2D,//target,
+        //         o_gpu_texture_collection__with_free_space.0, //level
+        //         o_gpu_texture.n_channel_layout_ingpu__webgl_internalFormat,//internalformat 
+        //         o_gpu_texture.n_scl_x,//width,
+        //         o_gpu_texture.n_scl_y,//height,
+        //         o_gpu_texture.n_webgl_border,//border,,
+        //         o_gpu_texture.n_channel_layout_input__webgl_srcFormat,//format,
+        //         o_gpu_texture.n_datatype__webgl_srcType,//type,
+        //         o_gpu_texture.a_n__typed//srcData
+        //         //srcOffset
+        //     );
+
+        //     continue;
+        // }
         if(v instanceof O_gpu_texture){
             v.s_name_in_shader = s_prop
             let n_idx_o_gpu_texture = -1;

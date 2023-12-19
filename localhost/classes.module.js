@@ -15,30 +15,46 @@
 // }
 class O_gpu_texture_collection{
     constructor(
-        n_datatype__webgl_srcType,
-        n_channel_layout_input__webgl_srcFormat,
-        n_channel_layout_ingpu__webgl_internalFormat,
-        n_scl_x, 
-        n_scl_y, 
         a_n__typed,
-        o_texture
+        n_scl_x,
+        n_scl_y,
+        n_datatype__webgl_srcType = 0,
+        n_channel_layout_input__webgl_srcFormat = 0, 
+        n_channel_layout_ingpu__webgl_internalFormat = null, 
+        n_webgl_level = 0, 
+        n_webgl_border = 0, 
     ){
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
         this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat,
         this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat, 
+        this.n_webgl_level = n_webgl_level
+        this.n_webgl_border = n_webgl_border
         this.n_scl_x = n_scl_x
         this.n_scl_y = n_scl_y
         this.a_n__typed = a_n__typed
-        this.o_texture = o_texture
+        this.o_texture = null
+        this.s_name_in_shader = null;
+        this.n_idx = null;
     }
 }
 
 class O_gpu_texture_collection_item{
     constructor(
-        a_n__typed
+        a_n__typed, 
+        n_scl_x, 
+        n_datatype__webgl_srcType,
+        n_channel_layout_input__webgl_srcFormat,
+        n_channel_layout_ingpu__webgl_internalFormat,
     ){
-        this.a_n__typed = a_n__typed;
+        this.a_n__typed = a_n__typed
+        this.n_scl_x = n_scl_x
+        this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
+        this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat,
+        this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat, 
         this.o_texture = null;
+        this.s_prop = null;
+        this.o_gpu_texture_collection = null;
+
     }
 }
 class O_gpu_texture{
@@ -73,6 +89,7 @@ class O_gpu_texture{
         this.n_webgl_level = n_webgl_level
         this.n_webgl_border = n_webgl_border
         this.s_name_in_shader = null;
+        this.n_idx = null;
     }
 }
 
@@ -88,7 +105,8 @@ class O_gpu_gateway{
         this.a_o_shader_info = a_o_shader_info
         this.o_shader__program = o_shader__program
         this.a_o_gpu_texture = []
-        this.a_o_gpu_texture_array = []
+        this.a_o_gpu_texture_collection = []
+        this.a_o_gpu_texture_collection_item = []
     }
 }
 

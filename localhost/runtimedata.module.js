@@ -190,6 +190,9 @@ let o_webgl_info = {
     ]
     )
 };
+export{
+    o_webgl_info
+}
 console.log(o_webgl_info);
 
 
@@ -884,6 +887,59 @@ o_channel_layout__8
 ,o_channel_layout__ui32_ui32_ui32_ui32
 }
 
+//possible combinations 
+let f = ()=>{
+    // herer https://registry.khronos.org/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
+    let a_o = Array.from(document.querySelectorAll('#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE tr')).map(o=>{
+        return {
+            internal_format: o.querySelectorAll('td')?.[0]?.innerText,
+            format: o.querySelectorAll('td')?.[1]?.innerText,
+            a_s_type: o.querySelectorAll('td')?.[2]?.innerText.split('\n'),
+        }
+        });
+        console.log(`
+        ${a_o.map(o=>{
+            return `
+                { internal_format: "${o.internal_format}", format: "${o.format}", a_s_type: ${JSON.stringify(o.a_s_type)} }
+        `.trim()
+        }).join(',\n')}
+        `)
+        // JSON.stringify(a_o)
+}
+
+
+let a_o_possible_combination = [
+    { internal_format: "undefined", format: "undefined", a_s_type: undefined },
+    { internal_format: "RGB", format: "RGB", a_s_type: ["UNSIGNED_BYTE","UNSIGNED_SHORT_5_6_5"] },
+    { internal_format: "RGBA", format: "RGBA", a_s_type: ["UNSIGNED_BYTE,","UNSIGNED_SHORT_4_4_4_4","UNSIGNED_SHORT_5_5_5_1"] },
+    { internal_format: "LUMINANCE_ALPHA", format: "LUMINANCE_ALPHA", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "LUMINANCE", format: "LUMINANCE", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "ALPHA", format: "ALPHA", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "R8", format: "RED", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "R16F", format: "RED", a_s_type: ["HALF_FLOAT","FLOAT"] },
+    { internal_format: "R32F", format: "RED", a_s_type: ["FLOAT"] },
+    { internal_format: "R8UI", format: "RED_INTEGER", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "RG8", format: "RG", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "RG16F", format: "RG", a_s_type: ["HALF_FLOAT","FLOAT"] },
+    { internal_format: "RG32F", format: "RG", a_s_type: ["FLOAT"] },
+    { internal_format: "RG8UI", format: "RG_INTEGER", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "RGB8", format: "RGB", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "SRGB8", format: "RGB", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "RGB565", format: "RGB", a_s_type: ["UNSIGNED_BYTE","UNSIGNED_SHORT_5_6_5"] },
+    { internal_format: "R11F_G11F_B10F", format: "RGB", a_s_type: ["UNSIGNED_INT_10F_11F_11F_REV","HALF_FLOAT","FLOAT"] },
+    { internal_format: "RGB9_E5", format: "RGB", a_s_type: ["HALF_FLOAT","FLOAT"] },
+    { internal_format: "RGB16F", format: "RGB", a_s_type: ["HALF_FLOAT","FLOAT"] },
+    { internal_format: "RGB32F", format: "RGB", a_s_type: ["FLOAT"] },
+    { internal_format: "RGB8UI", format: "RGB_INTEGER", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "RGBA8", format: "RGBA", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "SRGB8_ALPHA8", format: "RGBA", a_s_type: ["UNSIGNED_BYTE"] },
+    { internal_format: "RGB5_A1", format: "RGBA", a_s_type: ["UNSIGNED_BYTE","UNSIGNED_SHORT_5_5_5_1"] },
+    { internal_format: "RGB10_A2", format: "RGBA", a_s_type: ["UNSIGNED_INT_2_10_10_10_REV"] },
+    { internal_format: "RGBA4", format: "RGBA", a_s_type: ["UNSIGNED_BYTE","UNSIGNED_SHORT_4_4_4_4"] },
+    { internal_format: "RGBA16F", format: "RGBA", a_s_type: ["HALF_FLOAT","FLOAT"] },
+    { internal_format: "RGBA32F", format: "RGBA", a_s_type: ["FLOAT"] },
+    { internal_format: "RGBA8UI", format: "RGBA_INTEGER", a_s_type: ["UNSIGNED_BYTE"] }
+]
 export{
     s_context_webgl_version
 }

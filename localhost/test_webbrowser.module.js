@@ -16,7 +16,7 @@ import {
 
 }
 from './client.module.js'
-import { O_gpu_array_data, O_gpu_texture, O_gpu_texture_array_item } from "./classes.module.js";
+import { O_gpu_array_data, O_gpu_texture, O_gpu_texture_array_item, O_gpu_texture_collection_item } from "./classes.module.js";
 //readme.md:end
 
 let a_o_test = [
@@ -605,30 +605,10 @@ let a_o_test = [
                 500
             );
             let o_data = {
-                logo: new O_gpu_texture_array_item(
-                    //n_target__webgl_target,
-                    0,//n_webgl_level, 
-                    0,//n_webgl_xoffset, 
-                    0,//n_webgl_yoffset, 
-                    0,//n_webgl_zoffset, 
-                    o_image_data_logo.width,//n_scl_x, 
-                    o_image_data_logo.height,//n_scl_y, 
-                    0,//n_scl_z,
-                    o_gg1.o_ctx.RGBA,//n_cpu_data_format_webgl_format, 
-                    o_gg1.o_ctx.UNSIGNED_BYTE,//n_gpu_data_format_webgl_type, 
+                logo: new O_gpu_texture_collection_item(
                     o_image_data_logo.data
                 ), 
-                small: new O_gpu_texture_array_item(
-                    //n_target__webgl_target,
-                    0,//n_webgl_level, 
-                    0,//n_webgl_xoffset, 
-                    0,//n_webgl_yoffset, 
-                    0,//n_webgl_zoffset, 
-                    o_image_data_logo.width,//n_scl_x, 
-                    o_image_data_logo.height,//n_scl_y, 
-                    0,//n_scl_z,
-                    o_gg1.o_ctx.RGBA,//n_cpu_data_format_webgl_format, 
-                    o_gg1.o_ctx.UNSIGNED_BYTE,//n_gpu_data_format_webgl_type,
+                small: new O_gpu_texture_collection_item(
                     o_image_data_small.data
                 )
             }

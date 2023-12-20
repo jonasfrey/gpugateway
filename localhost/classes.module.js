@@ -14,6 +14,8 @@
 //     }
 // }
 class O_gpu_texture_collection{
+    // there can be multiple textures per collection 
+    // a texture can contain data of multiple collection_item
     constructor(
         a_n__typed,
         n_scl_x,
@@ -37,10 +39,11 @@ class O_gpu_texture_collection{
         this.n_scl_x_max = n_scl_x_max
         this.n_scl_y_max = n_scl_y_max
         this.a_n__typed = a_n__typed
-        this.o_texture = null
+        this.a_o_texture = []
         this.s_name_in_shader = null;
         this.n_idx = null;
         this.n_trn_y_after_last_item = 0
+        this.a_o_gpu_texture_collection_item = []
     }
 }
 
@@ -53,21 +56,35 @@ class O_gpu_texture_collection_item{
         o_webgl_format__internal_insidegpu = null, 
     ){
         this.a_n__typed = a_n__typed
+        this.n_len_a_n__typed__last = a_n__typed.length;
         this.n_scl_x = n_scl_x
         this.n_scl_x_on_texture = 0;
         this.n_scl_y_on_texture = 0;
         this.n_trn_x_on_texture = 0;
         this.n_trn_y_on_texture = 0;
+        this.n_trn_y_on_vritual_infinit_texture = 0;
+
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
         this.o_webgl_format__source_insidecpu = o_webgl_format__source_insidecpu,
         this.o_webgl_format__internal_insidegpu = o_webgl_format__internal_insidegpu, 
-        this.o_texture = null;
+        this.o_gpu_texture = null;
         this.s_prop = null;
         this.o_gpu_texture_collection = null;
         // since there are no absolute basic modular neccessary functions to update the array data of a texture BY INDEX!!!!
         // there are multiple array operations necessary to  update the data of a nD array embedded and represented as a part of a 1d array
         // therefore i have decided to padd the data to the width of the texture which is the maxwidth
         this.a_n__typed__padded = null;
+    }
+}
+class O_texture{
+    constructor(
+        o_webgl_texture, 
+        n_idx, 
+        o_gpu_texture_collection
+    ){
+        this.o_webgl_texture = o_webgl_texture, 
+        this.n_idx = n_idx
+        this.o_gpu_texture_collection = o_gpu_texture_collection
     }
 }
 class O_gpu_texture{
@@ -94,6 +111,7 @@ class O_gpu_texture{
         this.a_n__typed = a_n__typed
         this.n_scl_x = n_scl_x, 
         this.n_scl_y = n_scl_y, 
+
         this.v_o_instance_of_supported_pixels_data = null; //ImageData , HTMLImageElement , HTMLCanvasElement , HTMLVideoElement , ImageBitmap
         this.o_texture = null, 
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType
@@ -111,7 +129,7 @@ class O_gpu_gateway{
         o_canvas, 
         o_ctx,
         a_o_shader_info,
-        o_shader__program
+        o_shader__program, 
     ){
         this.o_canvas = o_canvas
         this.o_ctx = o_ctx
@@ -193,5 +211,6 @@ export {
     O_gpu_texture, 
     O_webgl_format, 
     O_gpu_texture_collection,
-    O_gpu_texture_collection_item
+    O_gpu_texture_collection_item, 
+    O_texture
 }

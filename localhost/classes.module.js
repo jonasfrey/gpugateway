@@ -21,15 +21,15 @@ class O_gpu_texture_collection{
         n_scl_x_max = 0,
         n_scl_y_max = 0,
         n_datatype__webgl_srcType = 0,
-        n_channel_layout_input__webgl_srcFormat = 0, 
-        n_channel_layout_ingpu__webgl_internalFormat = null, 
+        o_webgl_format__source_insidecpu = null, 
+        o_webgl_format__internal_insidegpu = null, 
         n_webgl_level = 0, 
         n_webgl_border = 0, 
     ){
         
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
-        this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat,
-        this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat, 
+        this.o_webgl_format__source_insidecpu = o_webgl_format__source_insidecpu,
+        this.o_webgl_format__internal_insidegpu = o_webgl_format__internal_insidegpu, 
         this.n_webgl_level = n_webgl_level
         this.n_webgl_border = n_webgl_border
         this.n_scl_x = n_scl_x
@@ -46,12 +46,11 @@ class O_gpu_texture_collection{
 
 class O_gpu_texture_collection_item{
     constructor(
-        a_n__typed, 
-
+        a_n__typed,
         n_scl_x, 
         n_datatype__webgl_srcType,
-        n_channel_layout_input__webgl_srcFormat,
-        n_channel_layout_ingpu__webgl_internalFormat,
+        o_webgl_format__source_insidecpu = null, 
+        o_webgl_format__internal_insidegpu = null, 
     ){
         this.a_n__typed = a_n__typed
         this.n_scl_x = n_scl_x
@@ -60,8 +59,8 @@ class O_gpu_texture_collection_item{
         this.n_trn_x_on_texture = 0;
         this.n_trn_y_on_texture = 0;
         this.n_datatype__webgl_srcType = n_datatype__webgl_srcType,
-        this.n_channel_layout_input__webgl_srcFormat = n_channel_layout_input__webgl_srcFormat,
-        this.n_channel_layout_ingpu__webgl_internalFormat = n_channel_layout_ingpu__webgl_internalFormat, 
+        this.o_webgl_format__source_insidecpu = o_webgl_format__source_insidecpu,
+        this.o_webgl_format__internal_insidegpu = o_webgl_format__internal_insidegpu, 
         this.o_texture = null;
         this.s_prop = null;
         this.o_gpu_texture_collection = null;
@@ -69,7 +68,6 @@ class O_gpu_texture_collection_item{
         // there are multiple array operations necessary to  update the data of a nD array embedded and represented as a part of a 1d array
         // therefore i have decided to padd the data to the width of the texture which is the maxwidth
         this.a_n__typed__padded = null;
-
     }
 }
 class O_gpu_texture{
@@ -163,27 +161,27 @@ class O_shader_error{
         this.s_rustlike_error = s_rustlike_error
     }
 }
-class O_channel_layout{
+class O_webgl_format{
     constructor(
         s_name,
         s_base_format,
-        s_bits_channel_0,
-        s_bits_channel_1,
-        s_bits_channel_2,
-        s_bits_channel_3,
+        a_s_bits_channel,
+        n_channels, 
+        n_webgl_value,
         n_shared_bits,
         b_color_renderable,
-        b_texture_filterable
+        b_texture_filterable, 
+        b_gamma_corrected
     ){
         this.s_name = s_name,
         this.s_base_format = s_base_format,
-        this.s_bits_channel_0 = s_bits_channel_0,
-        this.s_bits_channel_1 = s_bits_channel_1,
-        this.s_bits_channel_2 = s_bits_channel_2,
-        this.s_bits_channel_3 = s_bits_channel_3,
+        this.a_s_bits_channel = a_s_bits_channel
+        this.n_channels = n_channels
+        this.n_webgl_value = n_webgl_value
         this.n_shared_bits = n_shared_bits,
         this.b_color_renderable = b_color_renderable,
-        this.b_texture_filterable = b_texture_filterable
+        this.b_texture_filterable = b_texture_filterable, 
+        this.b_gamma_corrected = b_gamma_corrected
     }
 }
 
@@ -193,7 +191,7 @@ export {
     O_shader_info, 
     O_shader_error, 
     O_gpu_texture, 
-    O_channel_layout, 
+    O_webgl_format, 
     O_gpu_texture_collection,
     O_gpu_texture_collection_item
 }

@@ -4,7 +4,7 @@ import {
 } from "https://deno.land/x/handyhelpers@3.3/mod.js"
 
 
-import { O_gpu_gateway, O_gpu_texture, O_gpu_texture_collection, O_shader_error, O_shader_info } from "./classes.module.js";
+import { O_gpu_gateway, O_gpu_texture, O_gpu_texture_collection, O_gpu_texture_collection_item, O_shader_error, O_shader_info } from "./classes.module.js";
 
 import {
     o_webgl_info,
@@ -219,13 +219,14 @@ let f_update_data_in_o_gpu_gateway = function(
     // console.log('Max Fragment Arrays:', maxFragmentArrays);
     o_gpu_gateway.o_canvas.getContext(s_context_webgl_version);// WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost , can occur when the programmer uses different canvases or video or image elemnets
     let o_ctx = o_gpu_gateway.o_ctx;
-    // debugger
+
     let n_scl_x_max_gpu_texture = o_webgl_info.o_MAX_TEXTURE_SIZE.v;
     let n_scl_y_max_gpu_texture = o_webgl_info.o_MAX_TEXTURE_SIZE.v;
 
     for(let s_prop in o_data){
         let v = o_data[s_prop];
         if(v instanceof O_gpu_texture_collection_item){
+            // debugger
             let o_gpu_texture_collection_item =  o_gpu_gateway.a_o_gpu_texture_collection_item.find(
                 o=>o.s_prop == v.s_prop
             );
@@ -245,61 +246,99 @@ let f_update_data_in_o_gpu_gateway = function(
                 ||
                 v.n_datatype__webgl_srcType != o_gpu_texture_collection_item.n_datatype__webgl_srcType
                 ||
-                v.n_channel_layout_input__webgl_srcFormat != o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat
+                v.o_webgl_format__source_insidecpu.n_webgl_value != o_gpu_texture_collection_item.o_webgl_format__source_insidecpu.n_webgl_value
                 ||
-                v.n_channel_layout_ingpu__webgl_internalFormat != o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat
+                v.o_webgl_format__internal_insidegpu.n_webgl_value != o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.n_webgl_value
             ){
                 b_reinit = true;
             } 
             o_gpu_texture_collection_item.n_scl_x_on_texture = o_webgl_info.o_MAX_TEXTURE_SIZE.v;
-            o_gpu_texture_collection_item.n_scl_y_on_texture = Math.ceil(o_gpu_texture_collection_item.n_scl_x / o_gpu_texture_collection_item.n_scl_x_on_texture);
-
+            o_gpu_texture_collection_item.n_scl_y_on_texture = Math.ceil(
+                o_gpu_texture_collection_item.a_n__typed.length
+                    / o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.n_channels
+                    / o_gpu_texture_collection_item.n_scl_x_on_texture
+            );
+            if(b_reinit){
+                o_gpu_texture_collection_item.a_n__typed__padded = new o_gpu_texture_collection_item.a_n__typed.constructor(
+                    o_gpu_texture_collection_item.n_scl_x_on_texture
+                    * o_gpu_texture_collection_item.n_scl_y_on_texture
+                    * o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.n_channels
+                );
+            }
 
             let o_gpu_texture_collection = o_gpu_texture_collection_item.o_gpu_texture_collection
             if(!o_gpu_texture_collection){
-                let o_gpu_texture_collection__with_free_space = o_gpu_gateway.a_o_gpu_texture_collection.find(
+                o_gpu_texture_collection = o_gpu_gateway.a_o_gpu_texture_collection.find(
                     o=>{
                         return o.n_datatype__webgl_srcType == o_gpu_texture_collection_item.n_datatype__webgl_srcType
-                            && o.n_channel_layout_input__webgl_srcFormat == o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat
-                            && o.n_channel_layout_ingpu__webgl_internalFormat == o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat
-                            && o.n_scl_y_max - o.n_trn_y_after_last_item >= o_gpu_texture_collection_item.n_scl_y_on_texture
+                            && o.o_webgl_format__source_insidecpu.n_webgl_value == o_gpu_texture_collection_item.o_webgl_format__source_insidecpu.n_webgl_value
+                            && o.o_webgl_format__internal_insidegpu.n_webgl_value == o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.n_webgl_value
+                            && o.n_scl_y - o.n_trn_y_after_last_item >= o_gpu_texture_collection_item.n_scl_y_on_texture
                     }
                 );
-                if(!o_gpu_texture_collection__with_free_space){
-                    o_gpu_texture_collection__with_free_space = new O_gpu_texture_collection(
+                if(!o_gpu_texture_collection){
+                    console.log('new texture!!!')
+                    o_gpu_texture_collection = new O_gpu_texture_collection(
                         null, 
-                        0, 
-                        0, 
+                        o_webgl_info.o_MAX_TEXTURE_SIZE.v, 
+                        o_webgl_info.o_MAX_TEXTURE_SIZE.v, 
                         n_scl_x_max_gpu_texture, 
                         n_scl_y_max_gpu_texture, 
                         o_gpu_texture_collection_item.n_datatype__webgl_srcType,
-                        o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat,
-                        o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat,
+                        o_gpu_texture_collection_item.o_webgl_format__source_insidecpu,
+                        o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu,
+                    );
+                    o_gpu_texture_collection.n_idx = o_gpu_gateway.a_o_gpu_texture_collection.length;
+
+                    o_gpu_gateway.a_o_gpu_texture_collection.push(
+                        o_gpu_texture_collection
                     );
 
-                    o_gpu_texture_collection__with_free_space.n_idx = o_gpu_gateway.a_o_gpu_texture_collection.length + 1;
-                    o_gpu_texture_collection__with_free_space.o_texture = o_ctx.createTexture();
-                    o_gpu_texture_collection__with_free_space.s_name_in_shader = [
-                        'o_gpu_texture_collection', 
-                        o_gpu_texture_collection__with_free_space.n_idx, 
+                    o_gpu_texture_collection.o_texture = o_ctx.createTexture();
+                    o_gpu_texture_collection.s_name_in_shader = [
+                        'o_gpu_texture_collection',
+                        o_gpu_texture_collection.n_idx,
                         o_gpu_texture_collection_item.n_datatype__webgl_srcType,
-                        o_gpu_texture_collection_item.n_channel_layout_input__webgl_srcFormat,
-                        o_gpu_texture_collection_item.n_channel_layout_ingpu__webgl_internalFormat,
+                        o_gpu_texture_collection_item.o_webgl_format__source_insidecpu.s_name,
+                        o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.s_name,
                     ].join('_')
 
-                    o_ctx.activeTexture(o_ctx.TEXTURE0 + o_gpu_texture_collection__with_free_space.n_idx);
-                    o_ctx.bindTexture(o_ctx.TEXTURE_2D, o_gpu_texture_collection__with_free_space.o_texture);
+                    o_ctx.activeTexture(o_ctx.TEXTURE0 + o_gpu_texture_collection.n_idx);
+                    o_ctx.bindTexture(o_ctx.TEXTURE_2D, o_gpu_texture_collection.o_texture);
                     var o_uniform_location = o_ctx.getUniformLocation(
                         o_gpu_gateway.o_shader__program,
-                        o_gpu_texture_collection__with_free_space.s_name_in_shader
+                        o_gpu_texture_collection.s_name_in_shader
                     );
-                    o_ctx.uniform1i(o_uniform_location, o_gpu_texture_collection__with_free_space.n_idx); // Tell the shader we bound the texture to TEXTURE0
+                    debugger
+                    o_ctx.uniform1i(o_uniform_location, o_gpu_texture_collection.n_idx); // Tell the shader we bound the texture to TEXTURE0
                     //textures scale sizes must be power of two
                     // otherwise use this 
                     o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_S, o_ctx.CLAMP_TO_EDGE);
                     o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_WRAP_T, o_ctx.CLAMP_TO_EDGE);
                     o_ctx.texParameteri(o_ctx.TEXTURE_2D, o_ctx.TEXTURE_MIN_FILTER, o_ctx.LINEAR);
+                    o_ctx.texImage2D(
+                        // target, level, internalformat, width, height, border, format, type, offset
+                        o_ctx.TEXTURE_2D,//target,
+                        o_gpu_texture_collection.n_webgl_level, //level
+                        o_gpu_texture_collection.o_webgl_format__internal_insidegpu.n_webgl_value,//internalformat 
+                        o_gpu_texture_collection.n_scl_x_max,//width,
+                        o_gpu_texture_collection.n_scl_y_max,//height,
+                        o_gpu_texture_collection.n_webgl_border,//border,,
+                        o_gpu_texture_collection.o_webgl_format__source_insidecpu.n_webgl_value,//format,
+                        o_gpu_texture_collection.n_datatype__webgl_srcType,//type,
+                        new o_gpu_texture_collection_item.a_n__typed.constructor(
+                            o_gpu_texture_collection.n_scl_x_max
+                            * o_gpu_texture_collection.n_scl_y_max
+                            * o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.n_channels
+                        )
+                        //srcData
+                        //srcOffset
+                    );
                 }
+
+                o_gpu_texture_collection_item.o_gpu_texture_collection = o_gpu_texture_collection
+            }
+            if(b_reinit){
 
             }
 
@@ -308,34 +347,23 @@ let f_update_data_in_o_gpu_gateway = function(
                 .a_n__typed__padded
                 .set(o_gpu_texture_collection_item.a_n__typed);
             
-
+            // debugger
             o_ctx.bindTexture(o_ctx.TEXTURE_2D, o_gpu_texture_collection.o_texture);
             o_ctx.texSubImage2D(
                 o_ctx.TEXTURE_2D,
                 o_gpu_texture_collection.n_webgl_level,
-                0,
-                n_idx,
-                width2,
-                height2,
-                format,
-                type,
-                pixels
+                0,//n_trn_x
+                o_gpu_texture_collection.n_trn_y_after_last_item,//n_trn_y
+                o_gpu_texture_collection_item.n_scl_x_on_texture,
+                o_gpu_texture_collection_item.n_scl_y_on_texture,
+                o_gpu_texture_collection_item.o_webgl_format__internal_insidegpu.n_webgl_value,
+                o_gpu_texture_collection_item.n_datatype__webgl_srcType,
+                o_gpu_texture_collection_item
+                    .a_n__typed__padded
             );
 
-
-            o_ctx.texImage2D(
-                // target, level, internalformat, width, height, border, format, type, offset
-                o_ctx.TEXTURE_2D,//target,
-                o_gpu_texture_collection__with_free_space.0, //level
-                o_gpu_texture.n_channel_layout_ingpu__webgl_internalFormat,//internalformat 
-                o_gpu_texture.n_scl_x,//width,
-                o_gpu_texture.n_scl_y,//height,
-                o_gpu_texture.n_webgl_border,//border,,
-                o_gpu_texture.n_channel_layout_input__webgl_srcFormat,//format,
-                o_gpu_texture.n_datatype__webgl_srcType,//type,
-                o_gpu_texture.a_n__typed//srcData
-                //srcOffset
-            );
+            o_gpu_texture_collection.n_trn_y_after_last_item = 
+                o_gpu_texture_collection.n_trn_y_after_last_item + o_gpu_texture_collection_item.n_scl_y_on_texture
 
             continue;
         }
@@ -525,7 +553,24 @@ let f_update_data_in_o_gpu_gateway = function(
 
     }
 }
-
+let f_s_autogenerated_accessor_functions = function(o_data){
+    let n_ts = new Date().getTime()
+    for(let s_prop in o_data){
+        let v = o_data[s_prop];
+        if(v instanceof O_gpu_texture_collection_item){
+            // debugger
+            let o_gpu_texture_collection_item =  o_gpu_gateway.a_o_gpu_texture_collection_item.find(
+                o=>o.s_prop == v.s_prop
+            );
+            let s_accessor_function = `
+            //autogenerated_accessor_function_start__${s_prop}_${n_ts}
+            vec4 f_o_${s_prop}(vec2 o_trn_nor){return vec4(0)};
+            //autogenerated_accessor_function_end__${s_prop}_${n_ts}
+            `
+            if(o_gpu_texture_collection_item.s_accessor_function)
+        }
+    }
+}
 let f_o_gpu_gateway__from_simple_fragment_shader = function(
     s_code_shader__fragment, 
     n_scl_x = 500, 
@@ -573,6 +618,7 @@ export {
     o_state,
     f_update_data_in_o_gpu_gateway,
     f_o_gpu_texture__from_o_web_api_object,
+    f_s_autogenerated_accessor_functions,
 
 
     // 'presets', aka i am lazy as fuck functions

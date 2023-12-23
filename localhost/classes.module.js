@@ -140,6 +140,43 @@ class O_gpu_gateway{
         this.a_o_gpu_texture_collection_item = []
     }
 }
+class O_gpu_gateway_webgpu_dataitem{
+    constructor(
+        o_gpu_gateway_webgpu,
+        s_prop, 
+        n_idx,
+        n_bytes, 
+        o_buffer
+    ){
+        this.o_gpu_gateway_webgpu = o_gpu_gateway_webgpu,
+        this.s_prop = s_prop, 
+        this.n_idx = n_idx
+        this.n_bytes = n_bytes, 
+        this.o_buffer = o_buffer
+
+    }
+}
+class O_gpu_gateway_webgpu{
+    constructor(
+        o_gpu,
+        o_adapter,
+        o_device,
+        o_canvas, 
+        o_ctx, 
+        o_pipeline, 
+        a_o_gpu_gateway_webgpu_dataitem,
+        a_o_bindgroup
+    ){
+        this.o_gpu = o_gpu
+        this.o_adapter = o_adapter
+        this.o_device = o_device
+        this.o_canvas = o_canvas 
+        this.o_ctx = o_ctx 
+        this.o_pipeline = o_pipeline
+        this.a_o_gpu_gateway_webgpu_dataitem = a_o_gpu_gateway_webgpu_dataitem
+        this.a_o_bindgroup = a_o_bindgroup
+    }
+}
 
 class O_shader_info{
     constructor(
@@ -212,5 +249,7 @@ export {
     O_webgl_format, 
     O_gpu_texture_collection,
     O_gpu_texture_collection_item, 
-    O_texture
+    O_texture,
+    O_gpu_gateway_webgpu, 
+    O_gpu_gateway_webgpu_dataitem
 }

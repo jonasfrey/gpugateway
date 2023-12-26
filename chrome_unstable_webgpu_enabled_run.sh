@@ -1,0 +1,1 @@
+google-chrome-unstable --enable-unsafe-webgpu --enable-features=Vulkan,UseSkiaRenderer http://localhost:8080/test_webbrowser.html

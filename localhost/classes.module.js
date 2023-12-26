@@ -143,17 +143,80 @@ class O_gpu_gateway{
 class O_gpu_gateway_webgpu_dataitem{
     constructor(
         o_gpu_gateway_webgpu,
-        s_prop, 
-        n_idx,
-        n_bytes, 
-        o_buffer
+        s_prop,
+        a_n__typed,
+        n_bytes_per_array_element,
+        n_idx__group,
+        n_idx__binding,
+        o_webgpu_buffer = null,
+        o_webgpu_texture = null
     ){
         this.o_gpu_gateway_webgpu = o_gpu_gateway_webgpu,
         this.s_prop = s_prop, 
-        this.n_idx = n_idx
-        this.n_bytes = n_bytes, 
-        this.o_buffer = o_buffer
+        this.a_n__typed = a_n__typed
+        this.n_bytes_per_array_element = n_bytes_per_array_element
+        this.n_idx__group = n_idx__group
+        this.n_idx__binding = n_idx__binding
+        this.o_webgpu_buffer = o_webgpu_buffer
+        this.o_webgpu_texture = o_webgpu_texture
+        
+        // theese are all possible types of data that can be passed to the gpu 
+        // Uniform Buffers:
+        //     Used to pass small amounts of data that remain constant for a draw call or the entire render/compute pass, such as transformation matrices, material properties, or lighting parameters.
+        //     They have relatively small size limits compared to other types of GPU resources.
 
+        // Storage Buffers:
+        //     Used for larger, structured data that can be read and written by the GPU, such as particle systems, complex compute data, or large arrays.
+        //     Offer more flexibility and larger size limits than uniform buffers.
+
+        // Textures:
+        //     Used to pass image data for sampling in shaders. Textures are optimized for 2D and 3D data access and support various types of filtering and addressing modes.
+        //     Include sampled textures, storage textures, and depth/stencil textures.
+
+        // Vertex Buffers:
+        //     Used to pass per-vertex data, such as positions, normals, texture coordinates, and colors.
+        //     Essential for 3D rendering and typically used in vertex shaders.
+
+        // Index Buffers:
+        //     Used in combination with vertex buffers to define the order in which vertices are rendered, allowing the reuse of vertex data for multiple primitives.
+        //     Efficient for rendering complex geometries.
+
+        // Indirect Buffers:
+        //     Used for indirect draw or dispatch commands, where draw call parameters are stored in a buffer.
+        //     Allow the GPU to determine the number of vertices or instances to render, or the number of compute shader invocations, based on data generated in previous GPU operations.
+
+        // Query Sets:
+        //     Used for obtaining information about rendering and compute operations, such as the number of primitives rendered or the duration of a set of operations.
+        //  Useful for performance measurements and conditional rendering based on previous GPU tasks.
+
+    }
+}
+
+class O_webgpu_texture {
+    constructor(
+        n_scl_x, 
+        n_scl_y, 
+        n_channels, 
+        o_texture_from_device
+    ){
+        this.a_n__typed = a_n__typed, 
+        this.n_scl_x = n_scl_x, 
+        this.n_scl_y = n_scl_y
+        this.n_channels = n_channels
+        this.o_texture_from_device = o_texture_from_device
+    }
+}
+class O_webgpu_buffer{
+    constructor(
+        s_wgsl_type,
+        s_access_qualifier,
+        b_uniform, 
+        o_buffer_from_device
+    ){
+        this.s_wgsl_type = s_wgsl_type
+        this.s_access_qualifier = s_access_qualifier
+        this.b_uniform = b_uniform
+        this.o_buffer_from_device = o_buffer_from_device
     }
 }
 class O_gpu_gateway_webgpu{
@@ -240,6 +303,7 @@ class O_webgl_format{
     }
 }
 
+
 export {
     // O_gpu_array_data, 
     O_gpu_gateway,
@@ -251,5 +315,7 @@ export {
     O_gpu_texture_collection_item, 
     O_texture,
     O_gpu_gateway_webgpu, 
-    O_gpu_gateway_webgpu_dataitem
+    O_gpu_gateway_webgpu_dataitem, 
+    O_webgpu_texture,
+    O_webgpu_buffer,
 }

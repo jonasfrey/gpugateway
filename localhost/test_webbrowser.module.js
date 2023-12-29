@@ -8,7 +8,6 @@ import {
 //md: ![./logo_wide.png](./logo_wide.png)
 //md: ## 1. import
 import {
-    f_init_o_gpu_gateway_webgpu,
     f_n_idx_binding_from_params,
     f_o_gpu_gateway, 
     f_o_gpu_gateway__from_simple_fragment_shader,
@@ -1187,289 +1186,7 @@ let a_o_test = [
             // //    |    -- syntax error
 
         }
-    ), 
-    f_o_test(
-        'webgpu_test', 
-        async function(){
-            let o_canvas = document.createElement('canvas');
-            o_canvas.width = 550;
-            o_canvas.height = 550;
-            document.body.appendChild(o_canvas);
-
-            let o_mod_handyhelpers = await import('https://deno.land/x/handyhelpers@3.4/mod.js');
-            let o_img_data =  await o_mod_handyhelpers.f_o_image_data_from_s_url(
-                './logo.jpg'
-            );
-            let o_data = {
-                n_ts_ms__wpn: window.performance.now(), // will become a f32 value
-                n_id_frame: new Uint32Array([0]),//will become a u32 since only one value is present
-                a_n_f32_comp_mouse_nor: new Float32Array([0,0]), // will become a array<f32, 2>;
-                n_i_b_pointer_down: 0,
-                //unlike webgl2 we have to pass a texture and its size as separate values to the gpu 
-                a_n_f32_scl_logo_image: new Float32Array([o_img_data.width, o_img_data.height]),
-                logo_image: new O_webgpu_texture(
-                    o_img_data.data, 
-                    o_img_data.width, 
-                    o_img_data.height,
-                    4 
-                )
-            };
-            console.log(o_data)
-            let o_gpu_gateway_webgpu = await f_o_gpu_gateway_webgpu(
-                o_canvas,
-                o_data
-            );
-            await f_init_o_gpu_gateway_webgpu(
-                o_data,
-                o_gpu_gateway_webgpu,
-                `
-                struct VertexOutput {
-                    @builtin(position) position : vec4<f32>,
-                    @location(0) o_trn_nor_pixel : vec2<f32>
-                  };
-                @vertex
-                fn main(
-                  @builtin(vertex_index) n_idx_vertex : u32
-                ) -> VertexOutput {
-                  var pos = array<vec2<f32>, 6>(
-                    vec2(-1.0, -1.0),
-                    vec2(1.0, -1.0),
-                    vec2(-1.0,  1.0),
-                    vec2(1.0, -1.0),
-                    vec2(-1.0,  1.0),
-                    vec2(1.0,  1.0)
-
-                );
-                    // Compute UV coordinates (normalized device coordinates)
-                    var a_o_trn_nor_pixel = array<vec2<f32>, 6>(
-                    vec2(0.0, 0.0),
-                    vec2(1.0, 0.0),
-                    vec2(0.0, 1.0),
-                    vec2(1.0, 0.0),
-                    vec2(0.0, 1.0),
-                    vec2(1.0, 1.0)
-                    );
-              
-                
-                    var output : VertexOutput;
-                    output.position = vec4<f32>(pos[n_idx_vertex], 0.0, 1.0);
-                    output.o_trn_nor_pixel = a_o_trn_nor_pixel[n_idx_vertex];
-                    return output;
-                }
-                `,
-                `
-                ${f_s_binding_declaration__from_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu)}
-                
-                @fragment
-                fn main(@location(0) o_trn_nor_pixel: vec2<f32>) -> @location(0) vec4<f32> {
-
-                    let o_scl_logo = vec2<f32>(a_n_f32_scl_logo_image[0],a_n_f32_scl_logo_image[1]);
-                    let o_col__logo_image = textureLoad(logo_image, vec2<i32>(o_trn_nor_pixel.xy*o_scl_logo.xy));
-
-                    let o_trn_nor_pixel_centered = o_trn_nor_pixel - .5;
-                    let o_trn_nor_mouse_centered = vec2(a_n_f32_comp_mouse_nor[0],a_n_f32_comp_mouse_nor[1])-.5;
-                    let n = length(o_trn_nor_pixel_centered);
-                    
-                    // unfortunately there is no shorthand if in wgsl...
-                    // let n_dir = if n_i_b_pointer_down == 1.0 { 1. } else { -1. }; // rustlike not working
-                    // let n_dir = (n_i_b_pointer_down == 1.0) ? 1.0 : -1.0;// c like not working
-                    var n_dir = -1.;// 'var' is the same as 'let mut' in rust...
-                    if(n_i_b_pointer_down == 1.){
-                        n_dir = 1.;
-                    }
-                    let n_tau = 6.2831;
-                    let n2 = sin(n*n_tau*10.+n_dir*n_ts_ms__wpn*0.001);
-                    var o_col = vec4(vec3(n2), 1.);
-                    if(n_i_b_pointer_down == 1.){
-                        o_col = 1.-o_col;
-                    }
-                    // return o_col*o_col__logo_image;
-                    return o_col__logo_image;
-                    // return vec4(vec3(o_trn_nor_pixel.y),1.);
-                }
-                `
-            );
-            console.log({o_gpu_gateway_webgpu})
-
-            let f_render = function(){
-                requestAnimationFrame(f_render);
-
-                f_update_data_in_o_gpu_gateway_webgpu(
-                    o_gpu_gateway_webgpu, 
-                    {
-                        n_ts_ms__wpn: window.performance.now(), 
-                    }
-                )
-                f_render_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu);
-            }
-            requestAnimationFrame(f_render);
-
-
-            o_gpu_gateway_webgpu.o_canvas?.addEventListener('pointerdown', ()=>{
-                f_update_data_in_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu,{n_i_b_pointer_down: 1});
-            });
-            o_gpu_gateway_webgpu.o_canvas?.addEventListener('pointerup', ()=>{
-                f_update_data_in_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu,{n_i_b_pointer_down: 0});
-            });
-            o_gpu_gateway_webgpu.o_canvas?.addEventListener('mousemove', function(o_e){
-                let o_bounding_rect = o_e.target.getBoundingClientRect();
-                let n_nor__x = (o_e.clientX - o_bounding_rect.left)/o_bounding_rect.width;
-                let n_nor__y = (o_e.clientY - o_bounding_rect.top)/o_bounding_rect.height;
-                f_update_data_in_o_gpu_gateway_webgpu(
-                    o_gpu_gateway_webgpu,
-                    {
-                        a_n_f32_comp_mouse_nor: [n_nor__x, 1.-n_nor__y]
-                    },
-                );
-            });
-
-
-        }
     ),
-    f_o_test(
-        'webgpu_texture_limit_test', 
-        async function(){
-
-            let o_video = document.createElement('video');
-            document.body.appendChild(o_video)
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                o_video.srcObject = stream;
-            } catch (err) {
-                console.error('Error accessing webcam:', err);
-            }
-
-            let n_len_a_o_image_data = 4//16;//max textures per stage limit is 4 :( //32;
-            let n_idx_a_o_image_data = 0;
-            let a_o_image_data = new Array(n_len_a_o_image_data).fill(null);
-            // we have to wait a bit otherwise we get webgl2 context lost
-
-            o_video.onloadeddata = async function(){
-                let o_data = 
-                Object.assign({
-                    n_idx_a_o_image_data: n_idx_a_o_image_data,
-                    n_ts_ms__wpn: window.performance.now(), 
-                    //unlike webgl2 we have to pass a texture and its size as separate values to the gpu 
-                    a_n_f32_scl_video_image: new Float32Array([o_video.videoWidth, o_video.videoHeight]),
-                }, 
-                ...new Array(n_len_a_o_image_data).fill(0).map((v,n_idx)=>{
-                    return {
-                        [`video_image_${n_idx}`]: new O_webgpu_texture(
-                            new Uint8Array(o_video.videoWidth * o_video.videoHeight*4), 
-                            o_video.videoWidth, o_video.videoHeight,
-                            4 
-                        )
-                    }
-                })
-                )
-                // console.log(o_data);
-                // debugger
-
-            // http://localhost:8080/test_webbrowser.html#webcam_test_with_multiple_textures
-            
-            let o_canvas = document.createElement('canvas');
-            o_canvas.width = 550;
-            o_canvas.height = 550;
-            document.body.appendChild(o_canvas);
-
-            let o_gpu_gateway_webgpu = await f_o_gpu_gateway_webgpu(
-                o_canvas,
-                o_data
-            );
-            await f_init_o_gpu_gateway_webgpu(
-                o_data,
-                o_gpu_gateway_webgpu,
-                `
-                struct VertexOutput {
-                    @builtin(position) position : vec4<f32>,
-                    @location(0) o_trn_nor_pixel : vec2<f32>
-                  };
-                @vertex
-                fn main(
-                  @builtin(vertex_index) n_idx_vertex : u32
-                ) -> VertexOutput {
-                  var pos = array<vec2<f32>, 6>(
-                    vec2(-1.0, -1.0),
-                    vec2(1.0, -1.0),
-                    vec2(-1.0,  1.0),
-                    vec2(1.0, -1.0),
-                    vec2(-1.0,  1.0),
-                    vec2(1.0,  1.0)
-
-                );
-                    // Compute UV coordinates (normalized device coordinates)
-                    var a_o_trn_nor_pixel = array<vec2<f32>, 6>(
-                    vec2(0.0, 0.0),
-                    vec2(1.0, 0.0),
-                    vec2(0.0, 1.0),
-                    vec2(1.0, 0.0),
-                    vec2(0.0, 1.0),
-                    vec2(1.0, 1.0)
-                    );
-              
-                    var output : VertexOutput;
-                    output.position = vec4<f32>(pos[n_idx_vertex], 0.0, 1.0);
-                    output.o_trn_nor_pixel = a_o_trn_nor_pixel[n_idx_vertex];
-                    return output;
-                }
-                `,
-                `
-                ${f_s_binding_declaration__from_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu)}
-                
-                @fragment
-                fn main(@location(0) o_trn_nor_pixel: vec2<f32>) -> @location(0) vec4<f32> {
-
-                    let o_scl_video_image = vec2<f32>(a_n_f32_scl_video_image[0],a_n_f32_scl_video_image[1]);
-
-                    let a_o_pixel = array<vec4<f32>, ${n_len_a_o_image_data}>(
-                        ${new Array(n_len_a_o_image_data).fill(0).map((v,n_idx)=>{
-                            return `textureLoad(video_image_${n_idx}, vec2<i32>(o_trn_nor_pixel.xy*o_scl_video_image.xy))`
-                        }).join('\n,')} 
-                    );
-                    var n_idx = o_trn_nor_pixel.x*${n_len_a_o_image_data}.;
-                    n_idx = (n_idx+n_idx_a_o_image_data)% ${n_len_a_o_image_data}.;
-                    return a_o_pixel[u32(n_idx)];
-                }
-                `
-            );
-            console.log({o_gpu_gateway_webgpu})
-
-            let f_render = function(){
-                requestAnimationFrame(f_render);
-
-
-                if(o_video.HAVE_CURRENT_DATA){
-                    let o_can = document.createElement('canvas');
-                    o_can.width = o_video.videoWidth
-                    o_can.height = o_video.videoHeight
-                    let o_ctx2 = o_can.getContext('2d')
-                    o_ctx2.drawImage(o_video, 0, 0, o_can.width, o_can.height);
-                    const o_img_data = o_ctx2.getImageData(0, 0, o_can.width, o_can.height);
-                    a_o_image_data[n_idx_a_o_image_data] = o_img_data
-                    o_data[`video_image_${n_idx_a_o_image_data}`].a_n__typed = o_img_data.data
-                    f_update_data_in_o_gpu_gateway_webgpu(
-                        o_gpu_gateway_webgpu, 
-                        {
-                            n_idx_a_o_image_data: n_idx_a_o_image_data,
-                            [`video_image_${n_idx_a_o_image_data}`]: o_data[`video_image_${n_idx_a_o_image_data}`],
-                            n_ts_ms__wpn: window.performance.now(), 
-                        }
-                    )
-                }
-
-                f_render_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu);
-                n_idx_a_o_image_data = (n_idx_a_o_image_data+1)%n_len_a_o_image_data
-            }
-            requestAnimationFrame(f_render);
-
-            }
-
-
-
-            o_video.autoplay = true
-
-        }
-    ), 
     f_o_test(
         'passing_data_to_webgpu', 
         async function(){
@@ -1517,11 +1234,7 @@ let a_o_test = [
             };
             let o_gpu_gateway_webgpu = await f_o_gpu_gateway_webgpu(
                 o_canvas,
-                o_data
-            );
-            await f_init_o_gpu_gateway_webgpu(
-                o_data,
-                o_gpu_gateway_webgpu,
+                o_data, 
                 `
                 struct VertexOutput {
                     @builtin(position) position : vec4<f32>,
@@ -1556,7 +1269,7 @@ let a_o_test = [
                 }
                 `,
                 `
-                ${f_s_binding_declaration__from_o_gpu_gateway_webgpu(o_gpu_gateway_webgpu)}
+                // bindings will automatically be generated!
                 @fragment
                 fn main(@location(0) o_trn_nor_pixel: vec2<f32>) -> @location(0) vec4<f32> {
                     let o_trn_nor_pixel_centered = o_trn_nor_pixel - .5;
@@ -1573,6 +1286,7 @@ let a_o_test = [
                 }
                 `
             );
+
 
             let f_render = function(){
                 requestAnimationFrame(f_render);
@@ -1605,8 +1319,65 @@ let a_o_test = [
                     },
                 );
             });
+
+            console.log(`shader programm will change in 10 seconds`)
+            window.setTimeout(async function(){
+            // we can re-init the whole thing
+                o_gpu_gateway_webgpu = await f_o_gpu_gateway_webgpu(
+                    o_canvas,
+                    o_data, 
+                    `
+                    struct VertexOutput {
+                        @builtin(position) position : vec4<f32>,
+                        @location(0) o_trn_nor_pixel : vec2<f32>
+                    };
+                    @vertex
+                    fn main(
+                    @builtin(vertex_index) n_idx_vertex : u32
+                    ) -> VertexOutput {
+                    var pos = array<vec2<f32>, 6>(
+                        vec2(-1.0, -1.0),
+                        vec2(1.0, -1.0),
+                        vec2(-1.0,  1.0),
+                        vec2(1.0, -1.0),
+                        vec2(-1.0,  1.0),
+                        vec2(1.0,  1.0)
+
+                    );
+                        // Compute UV coordinates (normalized device coordinates)
+                        var a_o_trn_nor_pixel = array<vec2<f32>, 6>(
+                        vec2(0.0, 0.0),
+                        vec2(1.0, 0.0),
+                        vec2(0.0, 1.0),
+                        vec2(1.0, 0.0),
+                        vec2(0.0, 1.0),
+                        vec2(1.0, 1.0)
+                        );
+                        var output : VertexOutput;
+                        output.position = vec4<f32>(pos[n_idx_vertex], 0.0, 1.0);
+                        output.o_trn_nor_pixel = a_o_trn_nor_pixel[n_idx_vertex];
+                        return output;
+                    }
+                    `,
+                    `
+                    // bindings will automatically be generated!
+                    @fragment
+                    fn main(@location(0) o_trn_nor_pixel: vec2<f32>) -> @location(0) vec4<f32> {
+                        let o_trn_nor_pixel_centered = o_trn_nor_pixel - .5;
+                        return vec4(vec3(
+                            length(o_trn_nor_pixel_centered-.2),
+                            length(o_trn_nor_pixel_centered-0.),
+                            length(o_trn_nor_pixel_centered+.2),
+                        ), 1.);
+                    }
+                    `, 
+                    o_gpu_gateway_webgpu//pass the existing object to re-init
+                );
+            },10*1000)
+
         }
     ),
+
 ]
 
 

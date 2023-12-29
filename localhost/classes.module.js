@@ -194,6 +194,7 @@ class O_gpu_gateway_webgpu_dataitem{
 
 class O_webgpu_texture {
     constructor(
+        a_n__typed,
         n_scl_x, 
         n_scl_y, 
         n_channels, 

@@ -78,6 +78,8 @@ let a_o_test = [
     f_o_test(
         'passing_simple_data_to_shader_and_re_render', 
         async ()=>{
+            //readme.md:start
+            
             //md: ## 5. pass data to the gpu and render continiously
             //md: of course it only gets real fun when we pass data to the gpu and render it frequently
             window.setInterval(function(){

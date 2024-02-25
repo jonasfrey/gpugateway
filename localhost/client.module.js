@@ -486,7 +486,7 @@ let f_update_data_in_o_gpu_gateway = function(
 
             o_gpu_texture.o_texture = o_ctx.createTexture();
 
-            console.log({n_idx_o_gpu_texture, s_prop, o_gpu_texture})
+            // console.log({n_idx_o_gpu_texture, s_prop, o_gpu_texture})
 
             o_ctx.activeTexture(o_ctx.TEXTURE0 + n_idx_o_gpu_texture);
             o_ctx.bindTexture(o_ctx.TEXTURE_2D, o_gpu_texture.o_texture);

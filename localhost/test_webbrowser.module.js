@@ -155,6 +155,17 @@ let a_o_test = [
             //
             // ^mat2(2x2 f32 matrix)
 
+            // arrays, each array item takes up 4 bytes no matter what!!!!
+            // so a float32 array with 5 items would look like this, this is the reason
+            // why we need to 'gl.bufferData(gl.UNIFORM_BUFFER, a_n_f32.byteLength*16, gl.DYNAMIC_DRAW);'
+            // otherwise we get errors like 'WebGL warning: drawArraysInstanced: Buffer for uniform block is smaller than UNIFORM_BLOCK_DATA_SIZE.'
+            // ■ □ □ □
+            // ■ □ □ □
+            // ■ □ □ □
+            // ■ □ □ □
+            // ■ □ □ □
+            // ^f32 value
+            //   ^ wasted / padding space
 
             
             let o_gpu_gateway = f_o_gpu_gateway(
@@ -169,6 +180,13 @@ let a_o_test = [
                 `#version 300 es
                 precision mediump float;
 
+
+                uvec2 f_o_idx_on_vec4f_array(float n){
+                    int n_idx_vec = int(floor(n/4.));
+                    int n_idx_f32 = int(mod(n, 4.)); 
+                    return uvec2(n_idx_vec, n_idx_f32);
+                }
+
                 layout(std140) uniform ArrayBlock {
                     float a_n_42_els[42];
                 };
@@ -182,7 +200,9 @@ let a_o_test = [
                     vec2 o2;
                     float n1;
                 } example;
-                
+                layout(std140) uniform O_block3 {
+                    vec4 a_o_v4[5];
+                };
 
                 // incoming variables
                 in vec2 o_trn_nor_pixel;
@@ -202,6 +222,9 @@ let a_o_test = [
                         vec3(n),
                         1
                     );
+
+                    uvec2 o_idx = f_o_idx_on_vec4f_array(2.);
+                    float nf32 = a_o_v4[o_idx[0]][o_idx[1]];
                     fragColor = fragColor*(vec4(example.color, 1.)
                     +vec4(
                                     example.scale2,
@@ -210,6 +233,10 @@ let a_o_test = [
                                     0.
                     ))
                     * vec4(vec3(1.), example.n1);
+                    if(o_trn_nor_pixel.y > .5){
+                        // fragColor = a_o_v4[int((o_trn_nor_pixel.y-.5)*10.*2.)];
+                        fragColor = a_o_v4[int(mod(n_ms_time,5.))] * vec4(nf32);
+                    }
                 }
                 `,
             )
@@ -224,13 +251,12 @@ let a_o_test = [
             const shaderProgram = o_gpu_gateway?.o_shader__program
             var buffer = gl.createBuffer(); 
             gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
-            gl.bufferData(gl.UNIFORM_BUFFER, 44*16, gl.DYNAMIC_DRAW); 
+            gl.bufferData(gl.UNIFORM_BUFFER, a_n_42_els.length*16, gl.DYNAMIC_DRAW); 
             var blockIndex = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, "ArrayBlock");
             gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex, 0); // Assuming you want to bind it to binding point 0
             gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, buffer); // Bind the buffer to binding point 0
             gl.bufferSubData(gl.UNIFORM_BUFFER, 0, a_n_42_els);
 
-            //
 
             // // Create a Float32Array with enough space for your data, considering std140 layout rules
             // // For example, for the above struct, assuming no padding is needed:
@@ -304,9 +330,44 @@ let a_o_test = [
 
             gl.bufferSubData(gl.UNIFORM_BUFFER, 0, data);
 
+
+
+            
+            // a spot is 4 bytes
+            let n_elements = 5;
+            let n_spots = 4;
+            let a_v = new Float32Array(
+                [
+                    .9,.0,.1,.0, // 1st vec4, 
+                    .0,.0,.9,.9, // 2nd vec4, 
+                    .3,.3,.3,.9, // 3rd vec4, 
+                    .0,.0,.2,.9, // 4th vec4, 
+                    .0,.9,.9,.0, // 5th vec4, 
+                ]
+            )
+            var buffer = gl.createBuffer(); 
+            gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
+            gl.bufferData(gl.UNIFORM_BUFFER, a_v.byteLength, gl.DYNAMIC_DRAW); 
+            var blockIndex = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, "O_block3");
+            gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex, 2); 
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, buffer); 
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, a_v);
+
             f_render_o_gpu_gateway(
                 o_gpu_gateway
             );
+
+            window.setInterval(()=>{
+                f_update_data_in_o_gpu_gateway(
+                    {
+                        n_ms_time: window.performance.now()
+                    },
+                    o_gpu_gateway
+                )
+                f_render_o_gpu_gateway(
+                    o_gpu_gateway
+                );
+            },1000/30)
             //readme.md:end
         }
     ), 

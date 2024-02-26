@@ -72,6 +72,25 @@ let a_o_test = [
             f_render_o_gpu_gateway(
                 o_gpu_gateway
             );
+            //md: ## 5. update data and render in a loop to animate
+            let o_trn_nor_mouse = [0.5,0.5]
+            document.body.style.overflow = 'hidden';
+            window.ontouchmove = function(o_e){
+                o_trn_nor_mouse[0] = o_e.clientX / window.innerHeight;
+                o_trn_nor_mouse[1] = o_e.clientY / window.innerWidth;
+                console.log(o_trn_nor_mouse)
+            }
+            window.setInterval(()=>{
+                f_update_data_in_o_gpu_gateway(
+                    {
+                        o_trn_nor_mouse: o_trn_nor_mouse
+                    },
+                    o_gpu_gateway
+                )
+                f_render_o_gpu_gateway(
+                    o_gpu_gateway
+                );
+            },1000/30)
             //readme.md:end
         }
     ), 
@@ -153,16 +172,18 @@ let a_o_test = [
                 layout(std140) uniform ArrayBlock {
                     float a_n_42_els[42];
                 };
-
-                struct MyObject {
-                    vec3 position;
+                layout(std140) uniform ExampleBlock {
+                    float scale1;
                     vec3 color;
-                    float size;
-                };
-                layout(std140) uniform ObjectBlock {
-                    MyObject object;
-                };
+                    float scale2;
+                    float scale3;
+                    float scale4;
+                    vec2 o1;
+                    vec2 o2;
+                    float n1;
+                } example;
                 
+
                 // incoming variables
                 in vec2 o_trn_nor_pixel;
                 // outgoing variables
@@ -181,7 +202,14 @@ let a_o_test = [
                         vec3(n),
                         1
                     );
-                    fragColor = vec4(object.color,1.);
+                    fragColor = fragColor*(vec4(example.color, 1.)
+                    +vec4(
+                                    example.scale2,
+                                    example.scale3,
+                                    example.scale4,
+                                    0.
+                    ))
+                    * vec4(vec3(1.), example.n1);
                 }
                 `,
             )
@@ -193,10 +221,10 @@ let a_o_test = [
             let a_n_42_els = new Float32Array(new Array(42).fill(0).map((n_idx, n)=>{
                             return Math.random()
             }))
-
-            var buffer = gl.createBuffer();
+            const shaderProgram = o_gpu_gateway?.o_shader__program
+            var buffer = gl.createBuffer(); 
             gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
-            gl.bufferData(gl.UNIFORM_BUFFER, (42*4*4), gl.DYNAMIC_DRAW); 
+            gl.bufferData(gl.UNIFORM_BUFFER, 44*16, gl.DYNAMIC_DRAW); 
             var blockIndex = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, "ArrayBlock");
             gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex, 0); // Assuming you want to bind it to binding point 0
             gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, buffer); // Bind the buffer to binding point 0
@@ -204,24 +232,77 @@ let a_o_test = [
 
             //
 
-            var objectData = new Float32Array([
-                // Position
-                1.0, 0.0, 1.0, 0.0,
-                // Color
-                1.0, 0.0, 1.0, 0.0,
-                // Size
-                1.0, 0.0, 0.0, 0.0
-            ]);
-            
-            var objectBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.UNIFORM_BUFFER, objectBuffer);
-            gl.bufferData(gl.UNIFORM_BUFFER, objectData.byteLength*4., gl.STATIC_DRAW);
+            // // Create a Float32Array with enough space for your data, considering std140 layout rules
+            // // For example, for the above struct, assuming no padding is needed:
+            // const myUniformData = new Float32Array([
+            //     // 0.1, 0., 0. , 0., // myValue
+            //     0.2, 1.0, 1.0, 0.,// myVector
+            //     // myMatrix (16 floats for a 4x4 matrix)
+            //     // 1.0, 0.0, 0.0, 0.0,
+            //     // 0.0, 1.0, 0.0, 0.0,
+            //     // 0.0, 0.0, 1.0, 0.0,
+            //     // 0.0, 0.0, 0.0, 1.0,
+            //     // Add other members as needed, following std140 padding rules
+            // ]);
+            // const buffer2 = gl.createBuffer();
+            // gl.bindBuffer(gl.UNIFORM_BUFFER, buffer2);
+            // gl.bufferData(gl.UNIFORM_BUFFER, 32, gl.STATIC_DRAW);
 
-            var blockIndex = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, "ObjectBlock");
-            gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex, 1); 
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, objectBuffer); 
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 1, objectData);
+            // const blockIndex2 = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, 'MyUniformBlock');
+            // gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex2, 0); // 1 is the binding point
+            // gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, buffer2); // Bind the buffer to the binding point
+            // gl.bufferSubData(gl.UNIFORM_BUFFER, 0, myUniformData);
 
+
+
+
+            const blockIndex2 = gl.getUniformBlockIndex(shaderProgram, 'ExampleBlock');
+            // Fill the buffer with data
+            // Assuming the block size might need to account for padding, though in this simple case it might not be necessary
+            const data = new Float32Array([
+                0.4, 0.0, 0.0, 0.0, // scale (float)
+            //  ^scale1
+            //       ^    ^    ^ padding 
+
+                0.0, 0.0, 0.0, 0.2,
+            //                 ^ scale2
+            // ^ color (vec3)
+                
+
+                0.3, 0.4, 0.11, 0.12,
+            //  ^scale3
+            //       ^scale4
+            //            ^o1
+
+
+                0.21, 0.22, 0.5, 0.0, 
+            //  ^o2
+            //              ^n1
+            //                   ^padding
+                
+                                        // Potential padding if needed for alignment
+                                        ]);
+            gl.uniformBlockBinding(shaderProgram, blockIndex2, 1); // 0 is the binding point
+            console.log({
+                gl_get_error: gl.getError()
+            })
+            const blockSize = data.byteLength; // This size may need adjustment depending on the layout and padding
+            const uniformBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
+            gl.bufferData(gl.UNIFORM_BUFFER, blockSize, gl.DYNAMIC_DRAW);
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, 1  , uniformBuffer); // Binding point 0
+            console.log({
+                gl_get_error: gl.getError()
+            })
+
+            const dataSize = gl.getBufferParameter(gl.UNIFORM_BUFFER, gl.BUFFER_SIZE);
+            console.log("Data size:", dataSize);
+            console.log({
+                gl_get_error: gl.getError()
+            })
+
+
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, data);
 
             f_render_o_gpu_gateway(
                 o_gpu_gateway

@@ -88,7 +88,6 @@ let a_o_test = [
             // we can have normal arrays and objects in the gpu , holy shoot, this took me approx 1 year to figure out
             // the gpu api is so focking un-intuitive and unprecise documented....  
 
-            let gl = o_gpu_gateway.o_ctx;
             // in std140
             // so there are so called 'blocks' which have to be aligned / padded to 
             // the blocks look like this 
@@ -137,8 +136,7 @@ let a_o_test = [
             //
             // ^mat2(2x2 f32 matrix)
 
-            var maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
-            var maxFloats = maxUniformBlockSize / 4;
+
             
             let o_gpu_gateway = f_o_gpu_gateway(
                 o_canvas, 
@@ -152,9 +150,17 @@ let a_o_test = [
                 `#version 300 es
                 precision mediump float;
 
-                // In your shader code
                 layout(std140) uniform ArrayBlock {
                     float a_n_42_els[42];
+                };
+
+                struct MyObject {
+                    vec3 position;
+                    vec3 color;
+                    float size;
+                };
+                layout(std140) uniform ObjectBlock {
+                    MyObject object;
                 };
                 
                 // incoming variables
@@ -175,36 +181,48 @@ let a_o_test = [
                         vec3(n),
                         1
                     );
+                    fragColor = vec4(object.color,1.);
                 }
                 `,
             )
 
+            let gl = o_gpu_gateway.o_ctx;
+            var maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
+            var maxFloats = maxUniformBlockSize / 4;
+
             let a_n_42_els = new Float32Array(new Array(42).fill(0).map((n_idx, n)=>{
                             return Math.random()
             }))
-            // f_update_data_in_o_gpu_gateway(
-            //     {
-            //         a_n_42_els : new Float32Array(new Array(42).fill(0).map((n_idx, n)=>{
-            //             return n_idx
-            //         })),
-            //     },
-            //     o_gpu_gateway
-            // )
-            // Initialize your array here...
+
             var buffer = gl.createBuffer();
             gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
-            gl.bufferData(gl.UNIFORM_BUFFER, a_n_42_els.byteLength, gl.DYNAMIC_DRAW); // Ensure buffer size matches the size of your data structure
-            // gl.bufferData(gl.UNIFORM_BUFFER, array, gl.DYNAMIC_DRAW);
-
+            gl.bufferData(gl.UNIFORM_BUFFER, (42*4*4), gl.DYNAMIC_DRAW); 
             var blockIndex = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, "ArrayBlock");
             gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex, 0); // Assuming you want to bind it to binding point 0
-
             gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, buffer); // Bind the buffer to binding point 0
             gl.bufferSubData(gl.UNIFORM_BUFFER, 0, a_n_42_els);
 
-            f_render_o_gpu_gateway(
-                o_gpu_gateway
-            );
+            //
+
+            var objectData = new Float32Array([
+                // Position
+                1.0, 0.0, 1.0, 0.0,
+                // Color
+                1.0, 0.0, 1.0, 0.0,
+                // Size
+                1.0, 0.0, 0.0, 0.0
+            ]);
+            
+            var objectBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.UNIFORM_BUFFER, objectBuffer);
+            gl.bufferData(gl.UNIFORM_BUFFER, objectData.byteLength*4., gl.STATIC_DRAW);
+
+            var blockIndex = gl.getUniformBlockIndex(o_gpu_gateway?.o_shader__program, "ObjectBlock");
+            gl.uniformBlockBinding(o_gpu_gateway?.o_shader__program, blockIndex, 1); 
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, objectBuffer); 
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 1, objectData);
+
+
             f_render_o_gpu_gateway(
                 o_gpu_gateway
             );

@@ -544,7 +544,7 @@ let f_update_data_in_o_gpu_gateway = function(
             let s_name_function = `uniform1${(s_prop.startsWith('n_i_')?'i':'f')}`
 
             o_ctx[s_name_function](o_ctx.getUniformLocation(o_gpu_gateway.o_shader__program, s_prop), v);
-            console.log(s_name_function)
+            // console.log(s_name_function)
             continue
         }
         let v_s_type_array = f_v_s_type_from_array(v);
